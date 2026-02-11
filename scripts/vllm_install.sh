@@ -150,8 +150,11 @@ echo "Ensuring pip up to date:"
 echo "${CMD}"
 eval "${CMD}"
 
-CMD="python -m pip install -v -r requirements/${VLLM_TARGET_DEVICE}.txt"
-CMD="python -m pip install -e ."
+if [[ "macOS" != "${SYSTEM}" ]]; then
+    CMD="python -m pip install -v -r requirements/${VLLM_TARGET_DEVICE}.txt"
+else
+    CMD="python -m pip install ."
+fi
 echo ""
 echo "Installing packages:"
 echo "${CMD}"
