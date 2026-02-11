@@ -41,7 +41,6 @@ elif [[ "${OSTYPE}" == "darwin"* ]]; then
 else
     echo "Installation of ${ENV_NAME} for ${OSTYPE} on $(hostname) not handled"
     echo "Exiting: $(date)"
-    exit 1
 fi
 #
 # Check that conda is available.
@@ -71,8 +70,10 @@ DAWN_SETUP="/dev/null"
 MACOS_SETUP="/dev/null"
 if [[ "Dawn" == "${SYSTEM}" ]]; then
     DAWN_SETUP="${SETUP}"
+    LOCAL_STORE="${HOME}/rds/hpc-work"
 elif [[ "macOS" == "${SYSTEM}" ]]; then
     MACOS_SETUP="${SETUP}"
+    LOCAL_STORE="${HOME}/local-store"
 fi
 
 cat <<EOF >${SETUP}
@@ -87,102 +88,23 @@ module purge
 module load rhel9/default-dawn
 module load intel-oneapi-ccl/2021.15.0
 
-#
-# Set level-zero environment variables:
-# https://oneapi-src.github.io/level-zero-spec/level-zero/latest/core/PROG.html#environment-variables
-#
-
-# Define device hierarchy model and affinity mask.
-# See: https://www.intel.com/content/www/us/en/developer/articles/technical/flattening-gpu-tile-hierarchy.html
-# Define whether a GPU is treated as a single root device ("COMPOSITE")
-# or as a root device per stack ("FLAT").
 export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
-# Define root devices per node to be made visible to applications.
-# (Dawn has 4 GPUs per node, and two stacks per GPU.)
-export ZE_AFFINITY_MASK="0,1,2,3,4,5,6,7"
-
-#
-# Set some variables relevant to Intel MPI Library:
-# https://www.intel.com/content/www/us/en/docs/mpi-library/developer-reference-linux/2021-15/environment-variable-reference.html
-#
-
-# Set variables relating to GPU support.
-# See: https://www.intel.com/content/www/us/en/docs/mpi-library/developer-reference-linux/2021-15/gpu-support.html
-# Disable/enable GPU support (default: 0).
-export I_MPI_OFFLOAD=1
-# Disable/enable GPU pinning (default: 0).
-export I_MPI_OFFLOAD_PIN=1
-# Enable/disable assumption that all buffers in an operation have the same type
-# (default: 0).
-export I_MPI_OFFLOAD_SYMMETRIC=0
-
-# Set hydra environment variables.
-# See: https://www.intel.com/content/www/us/en/docs/mpi-library/developer-reference-linux/2021-15/hydra-environment-variables.html
-# Disable/enable process placement provided by job scheduler (default:1)
-export I_MPI_JOB_RESPECT_PROCESS_PLACEMENT=0
-# Set bootstrap server (default:"ssh")
-export I_MPI_HYDRA_BOOTSTRAP="slurm"
-
-# Configure debug output.
-# See: https://www.intel.com/content/www/us/en/docs/mpi-library/developer-reference-linux/2021-15/other-environment-variables.html
-# See: https://www.intel.com/content/www/us/en/docs/oneapi/optimization-guide-gpu/2024-0/intel-mpi-for-gpu-clusters.html
-export I_MPI_DEBUG=0
-
-#
-# Set some variables relevant to OneAPI collective communications library
-# (oneCCL):
-# https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-ze-ipc-exchange
-#
-
-# Select transport for inter-process communication (default: "mpi").
-# See: https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-atl-transport
-export CCL_ATL_TRANSPORT="ofi"
-
-# Set CCL log level (default: "warn").
-# See: https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-log-level
-export CCL_LOG_LEVEL="warn"
-
-# Set CCL process launcher (default: "hydra).
-# See: https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-process-launcher
-export CCL_PROCESS_LAUNCHER="hydra"
-
-# Set mechanism for CCL level zero inter-process communications
-# (default: pidfd).
-# See: https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-ze-ipc-exchange
-export CCL_ZE_IPC_EXCHANGE=sockets
-
-# Define filters for selection multiple network interfaces cards (NICs).
-# See:
-# https://uxlfoundation.github.io/oneCCL/env-variables.html#multi-nic
-#
-# Control multi-NIC selection by NIC locality.
-# See: https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-ze-ipc-exchange
-# export CCL_MNIC="none"
-#
-# Control multi-NIC selection by NIC names.
-# See: https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-mnic-name
-#export CCL_MNIC_NAME=
-#
-# Specify the maximum number of NICs to be selected.
-# https://uxlfoundation.github.io/oneCCL/env-variables.html#ccl-mnic-count
-#export CCL_MNIC_COUNT=
-
-
-# Avoid CCL warning:
-# [CCL_WARN] CCL_CONFIGURATION_PATH_modshare=:1 is unknown to and unused by
-# oneCCL code but is present in the environment, check if it is not mistyped.
-unset CCL_CONFIGURATION_PATH_modshare
+export ONEAPI_DEVICE_SELECTOR="level_zero:gpu;opencl:gpu"
+export VLLM_TARGET_DEVICE="xpu"
 
 EOF
 
 cat <<EOF >>${MACOS_SETUP}
-# Initialise environment variables that may be used at run time.
-# Define network interface.
-export GLOO_SOCKET_IFNAME="en0"
+export VLLM_TARGET_DEVICE="cpu"
 
 EOF
 
 cat <<EOF >>${SETUP}
+export HF_HOME="${LOCAL_STORE}"
+export HF_HUB_CACHE="${LOCAL_STORE}"
+export VLLM_CACHE_ROOT="${LOCAL_STORE}"
+export VLLM_LOGGING_LEVEL="INFO"
+#
 # Initialise conda.
 source $(realpath ${CONDA_HOME})/bin/activate
 
@@ -208,25 +130,48 @@ eval "${CMD}"
 PROJECTS_DIR=$(realpath ..)/projects
 mkdir -p ${PROJECTS_DIR}
 VLLM_HOME=${PROJECTS_DIR}/${ENV_NAME}
-if [ ! -d ${VLLM_HOME} ]; then
-  mkdir -p ${VLLM_HOME}
-  git clone https://github.com/vllm-project/vllm.git ${VLLM_HOME}
-  git -C ${DIFFUSION_MODELS_HOME} checkout xpu
-fi
+VLLM_VERSION="v0.15.1"
+rm -rf ${VLLM_HOME}
+mkdir -p ${VLLM_HOME}
+CMD="git clone https://github.com/vllm-project/vllm.git ${VLLM_HOME}"
+echo ""
+echo "Cloning vLLM repository, checking out version ${VLLM_VERSION}:"
+echo "${CMD}"
+eval "${CMD}"
 
 cd ${VLLM_HOME}
-python -m pip install --upgrade pip
-python -m pip install -v -r requirements/xpu.txt
+CMD="git checkout ${VLLM_VERSION}"
+echo "${CMD}"
+eval "${CMD}"
+
+CMD="python -m pip install --upgrade pip"
+echo ""
+echo "Ensuring pip up to date:"
+echo "${CMD}"
+eval "${CMD}"
+
+CMD="python -m pip install -v -r requirements/${VLLM_TARGET_DEVICE}.txt"
+CMD="python -m pip install -e ."
+echo ""
+echo "Installing packages:"
+echo "${CMD}"
+eval "${CMD}"
+
+# Build and install for vLLM target device.
+if [[ "macOS" != "${SYSTEM}" ]]; then
+    CMD="python setup.py install"
+    echo ""
+    echo "Performing build and install for target device: ${VLLM_TARGET_DEVICE}"
+    echo "${CMD}"
+    eval "${CMD}"
+fi
 
 # Check installation by importing modules.
-#CMD="python -c 'import datasets; import diffusers; import ipykernel; import ipywidgets; import jupyterlab; import matplotlib; import sklearn; import seaborn; import torch; import torchaudio; import torchvision; import transformers'"
-#echo ""
-#echo "Performing initial imports:"
-#echo "${CMD}"
-#eval "${CMD}"
-
-# Build and install vLLM XPU backend
-VLLM_TARGET_DEVICE=xpu python setup.py install
+CMD="python -c 'from vllm import LLM, SamplingParams'"
+echo ""
+echo "Performing initial imports:"
+echo "${CMD}"
+eval "${CMD}"
 
 echo ""
 echo "Installation of ${ENV_NAME} for ${OSTYPE} on $(hostname) completed: $(date)"
