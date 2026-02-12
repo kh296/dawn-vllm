@@ -6,26 +6,22 @@
 #SBATCH --gres=gpu:1            # number of allocated gpus per node
 #SBATCH --time=04:00:00         # total run time limit (HH:MM:SS)
 
-# Script for installing packages for running on the Dawn supercomputer,
-# and use on the Dawn supercomputer, and on other systems, (most of)
-# the Accelerate Science examples for diffusion models:
-# https://github.com/kh296/diffusion-models/tree/xpu
-# This includes installation of pytorch (version 2.9.1),
+# Script for installing vLLM on the Dawn supercomputer.
 #
 # This installation relies on the user having a conda installation
-# at ${CONDA_HOME}/bin/activate.  If not set by the user, CONDA_HOME
+# at ${CONDA_HOME}.  If not set by the user, CONDA_HOME
 # defaults to ${HOME}/miniforge3.  For instructions for installing
 # the Miniforge3 flavour of conda, see: https://conda-forge.org/download/
 #
-# After installation, the environment for using the diffusion-model
-# packages be activated by sourcing the file diffusion-models-setup.sh,
+# After installation, the environment for using vLLM can
+# be activated by sourcing the file vllm-setup.sh,
 # created in the directory ../envs relative to where the current script is run.
 #
 # On Dawn, the current script may be run interactively on a compute node
 # (not on a login node):
-# bash ./diffusion-models_install.sh
+# bash ./vllm_install.sh
 # or it may be submitted from a login node to the Slurm batch system:
-# sbatch --account=<project account> ./diffusion-models_install.sh
+# sbatch --account=<project account> ./vllm_install.sh
 #
 
 # Exit at first failure.
