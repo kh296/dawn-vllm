@@ -198,11 +198,13 @@ eval "${CMD}"
 PROJECTS_DIR=$(realpath ..)/projects
 mkdir -p ${PROJECTS_DIR}
 VLLM_HOME=${PROJECTS_DIR}/${PROJECT_NAME_LC}
-# Choose latest vLLM version that uses torch 2.9.1.
-if [[ "Dawn" == "${SYSTEM}" ]]; then
-    VLLM_VERSION="v0.15.1"
-elif [[ "macOS" == "${SYSTEM}" ]]; then
-    VLLM_VERSION="v0.14.1"
+# If VLLM version not set, default to latest version that uses torch 2.9.1.
+if [[ -z "${VLLM_VERSION}" ]]; then
+    if [[ "Dawn" == "${SYSTEM}" ]]; then
+        VLLM_VERSION="v0.15.1"
+    elif [[ "macOS" == "${SYSTEM}" ]]; then
+        VLLM_VERSION="v0.14.1"
+    fi
 fi
 rm -rf ${VLLM_HOME}
 mkdir -p ${VLLM_HOME}
