@@ -217,6 +217,8 @@ CMD="git checkout ${VLLM_VERSION}"
 echo "${CMD}"
 eval "${CMD}"
 
+# Installation based on instructions for build from source at:
+# https://docs.vllm.ai/en/stable/getting_started/installation/
 CMD="python -m pip install --upgrade pip"
 echo ""
 echo "Ensuring pip up to date:"
@@ -228,19 +230,14 @@ echo "Performing installation for target device '${VLLM_TARGET_DEVICE}':"
 CMD="python -m pip install -v -r requirements/${VLLM_TARGET_DEVICE}.txt"
 echo "${CMD}"
 eval "${CMD}"
+
+CMD="python -m pip install -v -e ."
 if [[ "Dawn" == "${SYSTEM}" ]]; then
-    CMD="python setup.py install"
-    echo ""
-    echo "${CMD}"
-    eval "${CMD}"
-elif [[ "macOS" == "${SYSTEM}" ]]; then
-    CMD="python -m pip install -v -r requirements/build.txt"
-    echo "${CMD}"
-    eval "${CMD}"
-    CMD="python -m pip install -v -e . --no-build-isolation"
-    echo "${CMD}"
-    eval "${CMD}"
+    CMD="${CMD} --no-build-isolation"
 fi
+echo ""
+echo "${CMD}"
+eval "${CMD}"
 
 # Check installation by importing modules.
 CMD="python -c 'from vllm import LLM, SamplingParams'"
