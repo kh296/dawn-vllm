@@ -6,9 +6,7 @@ This is a demonstration of installing and running vLLM on the
 [Dawn supercomputer](https://www.hpc.cam.ac.uk/d-w-n), which is
 hosted at the University of Cambridge, and is part
 of the [AI Resource Research (AIRR)](https://www.gov.uk/government/publications/ai-research-resource/airr-advanced-supercomputers-for-the-uk).  Dawn has
-256 nodes, in the form of [Dell PowerEdge XE9640](https://www.delltechnologies.com/asset/en-us/products/servers/technical-support/poweredge-xe9640-spec-sheet.pdf) servers.  Each node consists of:
-- 2 CPUs ([Intel Xeon Platinum 8468](https://www.intel.com/content/www/us/en/products/sku/231735/intel-xeon-platinum-8468-processor-105m-cache-2-10-ghz/specifications.html)), each with 48 cores and 512 GiB RAM;
-- 4GPUs ([Intel Data Centre GPU Max 1550](https://www.intel.com/content/www/us/en/products/sku/232873/intel-data-center-gpu-max-1550/specifications.html)),
+256 nodes, in the form of [Dell PowerEdge XE9640](https://www.delltechnologies.com/asset/en-us/products/servers/technical-support/poweredge-xe9640-spec-sheet.pdf) servers.  Each node consists of: 2 CPUs ([Intel Xeon Platinum 8468](https://www.intel.com/content/www/us/en/products/sku/231735/intel-xeon-platinum-8468-processor-105m-cache-2-10-ghz/specifications.html)), each with 48 cores and 512 GiB RAM; 4 GPUs ([Intel Data Centre GPU Max 1550](https://www.intel.com/content/www/us/en/products/sku/232873/intel-data-center-gpu-max-1550/specifications.html)),
 each with two stacks (or tiles), 1024 compute units, and 128 GiB RAM.
 
 The material collected here is licensed under the
@@ -19,9 +17,9 @@ The material collected here is licensed under the
 The following are minimal instructions for running an example
 [vLLM](https://docs.vllm.ai/en/stable/) application
 on the [Dawn supercomputer](https://www.hpc.cam.ac.uk/d-w-n).  The example
-runs the [offline thoughput benchmark](https://docs.vllm.ai/en/stable/cli/bench/throughput/?h=throughput)for the [Qwen/Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) Large Language Model.
+runs the [throughput benchmark](https://docs.vllm.ai/en/stable/cli/bench/throughput/?h=throughput)for the [Qwen/Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) Large Language Model.
 
-Instructions are provided for working on a Dawn login node or on
+Instructions are provided for working on a Dawn login node and on
 a Dawn compute node.
 
 ### 2.1 On a Dawn login node
@@ -105,7 +103,7 @@ to [build wheel from source for Intel XPU](https://docs.vllm.ai/en/stable/gettin
 
 The basic approach is to install Python packages in a virtual environment.  In
 [scripts/vllm_install.sh](scripts/vllm_install.sh), the virtual environment
-is creating `conda`, but it could be adapted to do this differently, for
+is created using `conda`, but it could be adapted to do this differently, for
 example using [python -m venv](https://docs.python.org/3/library/venv.html)
 or [uv venv](https://docs.astral.sh/uv/pip/environments/).
 instead.
@@ -113,11 +111,12 @@ instead.
 If [scripts/vllm_install.sh](scripts/vllm_install.sh) is run without
 specifying a path to an existing `conda` installation (`-c <conda_home>`),
 `conda` will be searched for at `~/miniforge3`.  If not found, the
-[Miniforge3](https://github.com/conda-forge/miniforge?tab=readme-ov-file#miniforge) flavour of `conda` will be installed at `~/rds/hpc-work/miniforge3`,
+[Miniforge](https://github.com/conda-forge/miniforge?tab=readme-ov-file#miniforge) flavour of `conda` will be installed at `~/rds/hpc-work/miniforge3`,
 and this directory will be linked to `~/miniforge3`.  This takes advantage of
 the large user space allocation at `~/rds/hpc-work` (not backed up - see
 [Summary of available filesystems](https://docs.hpc.cam.ac.uk/hpc/user-guide/io_management.html?highlight=hpc%20work#summary-of-available-filesystems),
-while making the Miniforge3 installation accessible at its default location. 
+while the link makes the Miniforge installation accessible at the
+default location. 
 
 The name used by [scripts/vllm_install.sh](scripts/vllm_install.sh) for
 the `conda` environment to which to install is as specified by the user
@@ -134,7 +133,8 @@ During installation, the following operations are performed:
   environment for installation, a tagged version of vLLM is checked out, then
   the vLLM software is installed:
   ```
-  # If not set before running script, VLLM_VERSION defaults to 0.15.1 on Dawn.
+  # If not set before running the installation script,
+  # VLLM_VERSION defaults to 0.15.1 on Dawn.
   git checkout ${VLLM_VERSION
   python -m pip install -v -r requirements/xpu.txt"
   python -m pip install -v -e . --no-build-isolation
@@ -205,7 +205,7 @@ For more information about FLAT and COMPOSITE modes, see:
 - [Exposing the device herarchy](https://www.intel.com/content/www/us/en/docs/oneapi/optimization-guide-gpu/2024-1/exposing-device-hierarchy.html);
 - [Flattening GPU tile hierarchy](https://www.intel.com/content/www/us/en/developer/articles/technical/flattening-gpu-tile-hierarchy.html).
 
-In general, a good starting point for vLLM applications is to use the minimum
+A reasonable starting point for vLLM applications is to use the minimum
 number of nodes and FLAT-mode visible devices needed for the Large Language
 Model being used.  In the example benchmark througphut, using 1 node gives
 better performance than using 2 nodes.
@@ -221,7 +221,8 @@ The scripts for installing and running vLLM on Dawn have been designed
 with the intention that they should be easy to adapt for use on other
 systems.  As an example of this, the scripts have been adapted so that
 the instructions for executing scripts interactively on a Dawn compute
-node will work also on a MacBook.  Installation on a MacBook is faster
-than on Dawn, which has been useful for some parts of the script
-development.  Running the example vLLM througput benchmark on a MacBook
-(CPU support only) is many times slower than on Dawn.
+node will work also on a system running MacOS (tested for
+version 26.3).  Installation in a test case was faster on a MacBook than
+on Dawn, which has been useful for some parts of the script
+development.  Running the example vLLM througput benchmark on the MacBook
+(CPU support only) was many times slower than on Dawn.
