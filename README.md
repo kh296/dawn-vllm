@@ -1,15 +1,15 @@
-# Running vLLM applications on Dawn
+# Installing and running vLLM on Dawn
 
 ## 1. Introduction
 
-The material collected here outlines how to run a vLLM application on the
-[Dawn supercomputer](https://www.hpc.cam.ac.uk/d-w-n).  This
-s hosted at the University of Cambridge, and is part
-of the [AI Resource Research (AIRR)](https://www.gov.uk/government/publications/ai-research-resource/airr-advanced-supercomputers-for-the-uk).  It has
+This is a demonstration of installing and running vLLM on the
+[Dawn supercomputer](https://www.hpc.cam.ac.uk/d-w-n), which is
+hosted at the University of Cambridge, and is part
+of the [AI Resource Research (AIRR)](https://www.gov.uk/government/publications/ai-research-resource/airr-advanced-supercomputers-for-the-uk).  Dawn has
 256 nodes, in the form of [Dell PowerEdge XE9640](https://www.delltechnologies.com/asset/en-us/products/servers/technical-support/poweredge-xe9640-spec-sheet.pdf) servers.  Each node consists of:
-2 CPUs ([Intel Xeon Platinum 8468](https://www.intel.com/content/www/us/en/products/sku/231735/intel-xeon-platinum-8468-processor-105m-cache-2-10-ghz/specifications.html)), each with 48 cores and 512 GiB RAM;
-4GPUs ([Intel Data Centre GPU Max 1550](https://www.intel.com/content/www/us/en/products/sku/232873/intel-data-center-gpu-max-1550/specifications.html)),
-each with two stacks, 1024 compute units, and 128 GiB RAM.
+- 2 CPUs ([Intel Xeon Platinum 8468](https://www.intel.com/content/www/us/en/products/sku/231735/intel-xeon-platinum-8468-processor-105m-cache-2-10-ghz/specifications.html)), each with 48 cores and 512 GiB RAM;
+- 4GPUs ([Intel Data Centre GPU Max 1550](https://www.intel.com/content/www/us/en/products/sku/232873/intel-data-center-gpu-max-1550/specifications.html)),
+each with two stacks (or tiles), 1024 compute units, and 128 GiB RAM.
 
 The material collected here is licensed under the
 [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
@@ -19,9 +19,9 @@ The material collected here is licensed under the
 The following are minimal instructions for running an example
 [vLLM](https://docs.vllm.ai/en/stable/) application
 on the [Dawn supercomputer](https://www.hpc.cam.ac.uk/d-w-n).  The example
-runs the [offline thoughput benchmark](https://docs.vllm.ai/en/stable/cli/bench/throughput/?h=throughput)for the [Qwen/Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) model.
+runs the [offline thoughput benchmark](https://docs.vllm.ai/en/stable/cli/bench/throughput/?h=throughput)for the [Qwen/Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) Large Language Model.
 
-Instructions are provided for working on a Dawn login node and on
+Instructions are provided for working on a Dawn login node or on
 a Dawn compute node.
 
 ### 2.1 On a Dawn login node
@@ -40,13 +40,13 @@ a Dawn compute node.
     sbatch --account=<project_account> vllm_install.sh
     ```
   - **Option 2**: if you have your own `conda` installation,
-    Submit a Slurm job for the installation as follows:
+    submit a Slurm job for the installation as follows:
     ```
     # Substitute for <project_account> a valid project account.
     # Substitute for <conda_home> the path to your conda installation.
     # Substitute for <conda_env> the name to be given to the conda
-    # environment for this installaion.
-    # Output written to build_image.log.
+    # environment for this installation.
+    # Output written to vllm_install.log.
     sbatch --account=<project_account> vllm_install.sh -c <conda_home> -e <conda_env>
     ```
    From when the Slurm job starts running, installation typically takes
@@ -63,7 +63,7 @@ a Dawn compute node.
   sbatch --account=<project_account> --nodes=1 go_vllm.sh
   ```
   The performance summary will be written a few lines before the end of
-  the output file, something like (running on a single node):
+  the output file, and for running on a single node should be similar to:
   ```
   Throughput: 20.29 requests/s, 23368.39 total tokens/s, 2596.49 output tokens/s
   ```
@@ -100,14 +100,14 @@ rather than submitting as Slurm jobs:
 ### 3.1 Installation
 
 The script [scripts/vllm_install.sh](scripts/vllm_install.sh) follows the
-approach outlined in the [vLLM documentation](https://docs.vllm.ai/en/stable/)
+instructions in the [vLLM documentation](https://docs.vllm.ai/en/stable/)
 to [build wheel from source for Intel XPU](https://docs.vllm.ai/en/stable/getting_started/installation/gpu/#build-wheel-from-source).
 
 The basic approach is to install Python packages in a virtual environment.  In
 [scripts/vllm_install.sh](scripts/vllm_install.sh), the virtual environment
-is creating `conda`, but it could be adapted to use a different option, for
-example based on [python -m venv](https://docs.python.org/3/library/venv.html)
-or [uv venv](https://docs.astral.sh/uv/pip/environments/) could be used
+is creating `conda`, but it could be adapted to do this differently, for
+example using [python -m venv](https://docs.python.org/3/library/venv.html)
+or [uv venv](https://docs.astral.sh/uv/pip/environments/).
 instead.
 
 If [scripts/vllm_install.sh](scripts/vllm_install.sh) is run without
@@ -145,27 +145,25 @@ During installation, the following operations are performed:
 ### 3.2 Example vLLM application
 
 Scripts for the example vLLM application are organised so as to separate
-application-specific scripts (in [examples](examples/)), user-specific
-environment setup script (`envs/<conda_env>-setup.sh`,
-created during installation), and scripts (in [scripts](scripts/) that
-should be independent of user and application.
+application-specific scripts (in [examples](examples/)),
+user-and-system-specific environment setup script (`envs/<conda_env>-setup.sh`,
+created during installation), and scripts (in [scripts](scripts/) not
+dependent on application, user, or system.
 
 The application-specific scripts are:
-- [examples/go_vllm.sh](examples/go_vllm.sh)
-  - top-level run script; sends the task run script (see below)
-    to the number of nodes requested;
 - [examples/run_vllm_single.sh](examples/run_vllm_single.sh)
   - task run script; configures and runs an application on a single node;
-    used by [examples/go_vllm.sh](examples/go_vllm.sh), or may be used
-    standalone.
+- [examples/go_vllm.sh](examples/go_vllm.sh)
+  - top-level run script; sends the task run script to
+    the number of nodes requested.
 
 The task run script may be sent to a single node, or may be sent to the
 head node and worker nodes of a
-[Ray cluster](https://docs.ray.io/en/latest/cluster/getting-started.html)
+[Ray cluster](https://docs.ray.io/en/latest/cluster/getting-started.html).
 The task run script takes care of the following:
   1. on all nodes, it sets up the vLLM run-time environment:
      - sources [scripts/start_task.sh](scripts/start_task.sh);
-       - sources [scripts/setup_project.sh](scripts/setup_task.sh),
+       - sources [scripts/setup_project.sh](scripts/setup_project.sh),
          which determines the absolute path to the `vllm_dawn` directory,
          and sources `envs/<conda_env>-setup.sh` to set
          environment variables;
@@ -180,19 +178,47 @@ The task run script takes care of the following:
      cluster, executes user code for configuring and launching
      an application; when launched on the head node of a Ray cluster,
      the application will automatically run also on the worker nodes.
-  3. if on the head node of a Ray cluster, ensures that Ray cluster is
-     closed down when applications completes:
+  3. if on the head node of a Ray cluster, ensures that the Ray cluster is
+     closed down when the application completes:
      - sources [scripts/end_task.sh](scripts/end_task.sh).
   
-### 3.3 Intel optimisations for Large Language Models
+### 3.3  Device visibility
+
+The scripts here have been set up so that the example vLLM application
+will make use of all visible devices on the number of nodes requested.  Prior
+to running an application, device visibility can be
+defined using the environment variable `ZE_FLAT_DEVICE_HIERARCHY`,
+set in `envs/<conda_env>-setup.sh`:
+- The two GPU stacks of each Dawn GPU card are made visible as
+  two independent devices with (default):
+  ```
+  export ZE_FLAT_DEVICE_HIERARCY="FLAT"
+  ```
+- A Dawn GPU card (two stacks combined) is made visible as a single device with:
+  ```
+  export ZE_FLAT_DEVICE_HIERARCY="COMPOSITE"
+  ```
+FLAT mode maximises the available compute power, while COMPOSITE mode
+maximises the RAM per device at 128 GiB.
+
+For more information about FLAT and COMPOSITE modes, see:
+- [Exposing the device herarchy](https://www.intel.com/content/www/us/en/docs/oneapi/optimization-guide-gpu/2024-1/exposing-device-hierarchy.html);
+- [Flattening GPU tile hierarchy](https://www.intel.com/content/www/us/en/developer/articles/technical/flattening-gpu-tile-hierarchy.html).
+
+In general, a good starting point for vLLM applications is to use the minimum
+number of nodes and FLAT-mode visible devices needed for the Large Language
+Model being used.  In the example benchmark througphut, using 1 node gives
+better performance than using 2 nodes.
+
+### 3.4 Large Language Models with optimisations for Intel GPUs
 
 Information is available about
 [Large Language Models with optimisations for Intel GPUs](https://github.com/intel/intel-extension-for-pytorch?tab=readme-ov-file#ipexllm---large-language-models-llms-optimization).
 
-### 3.4 Installing and running vLLM on other systems
+### 3.5 Installing and running vLLM on other systems
 
 The scripts for installing and running vLLM on Dawn have been designed 
-with the intention that they should be easy to adapt to run on other
+with the intention that they should be easy to adapt for use on other
 systems.  As an example of this, the scripts have been adapted so that
 the instructions for executing scripts interactively on a Dawn compute
 node will work also on a MacBook.  Installation on a MacBook is faster
