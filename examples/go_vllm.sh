@@ -40,13 +40,19 @@ unset SLURM_MEM_PER_CPU
 unset SLURM_MEM_PER_NODE
 SLURM_EXPORT_ENV="ALL"
 
+# Ensure that help in ../scripts/setup_project.sh refers to this script.
+export SETUP_LAUNCH="$(basename $0)"
+export SETUP_INFO=\
+"    Launch application in vLLM environment on multiple nodes."
+
 echo ""
+RUN_SCRIPT=$(realpath ./run_vllm_single.sh)
 if [[ "${SLURM_NNODES}" -eq "1" ]]; then
     echo "Running task on 1 node:"
-    CMD=(./run_vllm_single.sh $1)
+    CMD=("${RUN_SCRIPT}" "$@")
 else
     echo "Running tasks on ${SLURM_NNODES} nodes:"
-    CMD=(srun --nodes=${SLURM_NNODES} --ntasks-per-node=1 run_vllm_single.sh $1)
+    CMD=(srun --nodes=${SLURM_NNODES} --ntasks-per-node=1 "${RUN_SCRIPT}" "$@")
 fi
 echo "${CMD[@]}"
 "${CMD[@]}"

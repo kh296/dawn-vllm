@@ -43,10 +43,6 @@
 # For informtion about #SBATCH directives, see:
 # https://slurm.schedmd.com/sbatch.html#SECTION_DESCRIPTION
 
-T1=${SECONDS}
-echo ""
-echo "Task start on $(hostname): $(date)"
-
 # Exit at first failure.
 set -e
 
@@ -56,11 +52,33 @@ if [[ ${PROJECT_HOME} == /var/spool/* ]]; then
     PROJECT_HOME=$(dirname $(pwd))
 fi
 
+# Ensure that help in ../scripts/setup_project.sh refers to this script.
+export SETUP_INFO="    Launch application in vLLM environment on single node."
+
 # Perform environment setup; initiate ray cluster if running on multiple nodes.
-source ${PROJECT_HOME}/scripts/start_task.sh $1
+source ${PROJECT_HOME}/scripts/start_task.sh
+
+if [[ "true" != "${PROJECT_ENVIRONMENT_SET}" ]]; then
+    exit
+fi
+
+if [[ -z "${APPTAINER_CONTAINER}" ]]; then
+    export TASK_T1=${SECONDS}
+    echo ""
+    echo "Task start on $(hostname): $(date)"
+fi
+
+if [[ ! -z ${CONTAINER_LAUNCH} && -z ${APPTAINER_CONTAINER} ]]; then
+    CMD=(${CONTAINER_LAUNCH} $0)
+    echo ""
+    echo "Launching apptainer on $(hostname): $(date)"
+    echo "${CMD[@]}"
+    "${CMD[@]}"
+    exit
+fi
 set --
 
-if ! ${IS_HEAD_NODE}; then
+if [[ "true" != "${IS_HEAD_NODE}" ]]; then
     exit
 fi
 
@@ -70,6 +88,13 @@ if [[ "${OSTYPE}" == "darwin"* ]]; then
 else
     MODEL="Qwen/Qwen3-4B"
 fi
+
+# Define storage locations and logging level.
+VLLM_STORE="/home/kh296/rds/hpc-work/vllm"
+export VLLM_CACHE_ROOT="${VLLM_STORE}"
+export HF_HOME="${VLLM_STORE}"
+export HF_HUB_CACHE="${VLLM_STORE}"
+export VLLM_LOGGING_LEVEL="INFO"
 
 # Define options to be passed to application.
 # Exclamation mark used to avoid forced exit (with set -e)
@@ -104,4 +129,4 @@ echo "Time for vLLM benchmarking: $((${SECONDS}-${T3})) seconds"
 source ${PROJECT_HOME}/scripts/end_task.sh
 
 echo ""
-echo "Task time on $(hostname): $((${SECONDS}-${T1})) seconds"
+echo "Task time on $(hostname): $((${SECONDS}-${TASK_T1})) seconds"

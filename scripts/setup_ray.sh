@@ -5,22 +5,32 @@
 # via srun or a script run via srun.
 
 # Ensure PROJECT_HOME defined.
-if [[ -d "${PROJECT_HOME}" ]]; then
+if [[ ! -d "${PROJECT_HOME}" ]]; then
     PROJECT_HOME=$(cd $(dirname "${BASH_SOURCE[0]}")/..; pwd)
     if [[ ${PROJECT_HOME} == /var/spool/* ]]; then
         PROJECT_HOME=$(dirname $(pwd))
     fi
 fi
 
-
-if ! type ray >/dev/null 2>&1; then
-    source ${PROJECT_HOME}/scripts/setup_project.sh $1
-fi
-set --
-
-if [[ -z "${IS_HEAD_NODE}" ]]; then
+if [[ true != "${PROJECT_ENVIRONMENT_SET}" ]]; then
+    # Ensure that help in ../scripts/setup_project.sh refers to this script.
+    export SETUP_INFO= "    Set up ray cluster across multiple nodes."
+    source ${PROJECT_HOME}/scripts/setup_project.sh
+    if [[ true != "${PROJECT_ENVIRONMENT_SET}" ]]; then
+        exit
+    fi
     source ${PROJECT_HOME}/scripts/setup_slurm.sh
 fi
+
+if [[ ! -z ${CONTAINER_LAUNCH} && -z ${APPTAINER_CONTAINER} ]]; then
+    CMD=(${CONTAINER_LAUNCH} $0)
+    echo ""
+    echo "Launching apptainer on $(hostname): $(date)"
+    echo "${CMD[@]}"
+    "${CMD[@]}"
+    exit
+fi
+set --
 
 T2=${SECONDS}
 
@@ -33,7 +43,7 @@ if [ ${SLURM_CPUS_ON_NODE} -lt ${NUM_CPUS} ]; then
 fi
 
 # Initiate a ray cluster by starting the head node.
-if ${IS_HEAD_NODE}; then
+if [[ "true" == "${IS_HEAD_NODE}" ]]; then
     echo ""
     echo "Ensuring no active ray cluster:"
     CMD=(ray stop)
@@ -53,7 +63,7 @@ until ray status --address=${HEAD_NODE_ADDRESS} >/dev/null 2>&1; do
 done
 
 # Add a worker node to the ray cluster.
-if ${IS_HEAD_NODE}; then
+if [[ "true" == "${IS_HEAD_NODE}" ]]; then
     echo ""
     echo "Ray head node running on ${HEAD_NODE}."
     echo ""
@@ -77,7 +87,7 @@ while true; do
     fi
 done
 
-if ${IS_HEAD_NODE}; then
+if [[ "true" == "${IS_HEAD_NODE}" ]]; then
     echo ""
     echo "Worker nodes added to ray cluster."
     echo ""
@@ -92,7 +102,7 @@ fi
 
 # If not running on a head node, wait until worker processes are stopped,
 # and then exit.
-if ! ${IS_HEAD_NODE}; then
+if [[ "true" != "${IS_HEAD_NODE}" ]]; then
     wait 
     echo "Ray worker $(hostname) exiting."
     exit

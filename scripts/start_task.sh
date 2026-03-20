@@ -9,14 +9,23 @@ if [[ -d "${PROJECT_HOME}" ]]; then
     fi
 fi
 
-# Perform vLLM environment setup.
-source ${PROJECT_HOME}/scripts/setup_project.sh "$1"
+if [[ "true" != "${PROJECT_ENVIRONMENT_SET}" ]]; then
+    # Perform vLLM environment setup.
+    source ${PROJECT_HOME}/scripts/setup_project.sh
+fi
 set --
 
-# Ensure Slurm environment variables set, and variables derived from these.
-source ${PROJECT_HOME}/scripts/setup_slurm.sh
+if [[ "true" == "${PROJECT_ENVIRONMENT_SET}" ]]; then
+    # Ensure Slurm environment variables set, and variables derived from these.
+    if [[ -z "${IS_HEAD_NODE}" ]]; then
+        source ${PROJECT_HOME}/scripts/setup_slurm.sh
+    fi
 
-# Initiate, or add to, ray cluster.
-if [[ ${SLURM_NNODES} -gt 1 ]]; then
-    ${PROJECT_HOME}/scripts/setup_ray.sh
+    # As needed, initiate, or add to, ray cluster.
+    if [[ "${SLURM_NNODES}" -gt 1 ]]; then
+        if [[ ! -f "$0" || -z "${CONTAINER_LAUNCH}" || \
+            ! -z "${APPTAINER_CONTAINER}" ]]; then
+            ${PROJECT_HOME}/scripts/setup_ray.sh
+        fi
+    fi
 fi

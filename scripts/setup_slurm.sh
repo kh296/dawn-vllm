@@ -80,6 +80,7 @@ unset SLURM_MEM_PER_NODE
 SLURM_EXPORT_ENV="ALL"
 
 # Create list of node names, and identify the head node.
+command -v scontrol 1>/dev/null 2>&1
 if command -v scontrol 1>/dev/null 2>&1; then
     NODES="$(echo $(scontrol show hostnames ${SLURM_JOB_NODELIST})\
         | sed 's/ /,/g')"
@@ -92,7 +93,7 @@ else
 fi
 export IS_HEAD_NODE=$( [[ "$(hostname)" == "${HEAD_NODE}" ]] && echo "true" || echo "false" )
 
-if ${IS_HEAD_NODE}; then
+if [[ "true" == ${IS_HEAD_NODE} ]]; then
     echo ""
     echo "Node(s) used:"
     echo "${NODES}"
