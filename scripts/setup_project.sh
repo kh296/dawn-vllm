@@ -19,6 +19,12 @@ CONDA_ENV="vllm"
 CONTAINER_FLAG="false"
 CONTAINER_IMAGE=\
 $(ls ${PROJECT_HOME}/apptainer/vllm*.sif 2>/dev/null | head -n 1)
+VLLM_CMD=""
+if [[ "${OSTYPE}" == "darwin"* ]]; then
+    HF_MODEL="Qwen/Qwen3-0.6B"
+else
+    HF_MODEL="Qwen/Qwen3-4B"
+fi
 
 usage() {
     if [[ -z "${SETUP_LAUNCH}" ]]; then
@@ -29,15 +35,19 @@ usage() {
         fi
     fi
     if [[ -z "${SETUP_INFO}" ]]; then
-        SETUP_INFO="    Set up vLLM environment."
+        SETUP_INFO="Set up vLLM environment."
     fi
     echo \
-    "usage: ${SETUP_LAUNCH} [-h] [-c [<conda e0nv>]] [-a0 0[<container image>]]"
+    "usage: ${SETUP_LAUNCH} [-h] [-c [<conda env>]] [-a [<container image>]] [-r [<command or shortcut>]] [-m [<model identifier]]"
+    echo ""
     echo "${SETUP_INFO}"
+    echo ""
     echo "Options:"
     echo "    -h: Print this help."
     echo "    -c: Use conda environment <conda env>."
     echo "    -a: Use apptainer image at path <image path>."
+    echo "    -r: Set environment variable VLLM_CMD to <command or shortcut>."
+    echo "    -m: Set environment variable HF_MODEL to <model identifier>."
     echo "If <conda env> not specified, defaults to: \"${CONDA_ENV}\"."
     echo \
     "If <container image> not specified, defaults to: \"${CONTAINER_IMAGE}\"."
@@ -46,6 +56,20 @@ usage() {
     echo "    try using apptainer image."
     echo "If -c specified and -a unspecified, only try using conda environment."
     echo "If -a specified and -c unspecified, only try using apptainer image."
+    echo "If <command or shortcut> specified, it should correspond to"
+    echo "    a command that can be run in the vLLM environment,"
+    echo "    or to a user-defined shortcut for such a command."
+    echo "    If it includes spaces, it should be enclosed in quotes."
+    echo "If -r unspecified, or <command or shortcut> unspecified",
+    echo "    the environment variable VLLM_CMD is set to \"${VLLM_CMD}\"."
+    echo "If <model identifier> specified, it should correspond to"
+    echo "    the identifier of a Hugging Face Model, or to the local path"
+    echo "    to such a model."
+    echo "If -m unspecified, or <model identifier> unspecified",
+    echo "    the environment variable HF_MODEL is set to \"${HF_MODEL}\"."
+    echo "The environment variables VLLM_CMD and HF_MODEL should be handled"
+    echo "    in the user's run script (run_vllm_single.sh or similar)."
+    echo ""
     unset SETUP_LAUNCH
 }
 while [[ $# -gt 0 ]]; do
@@ -73,6 +97,22 @@ while [[ $# -gt 0 ]]; do
                 shift 1
             fi
             ;;
+        -r)
+            if [[ -n "$2" && "$2" != -* ]]; then
+                VLLM_CMD="$2"
+                shift 2
+            else
+                shift 1
+            fi
+            ;;
+        -m)
+            if [[ -n "$2" && "$2" != -* ]]; then
+                HF_MODEL="$2"
+                shift 2
+            else
+                shift 1
+            fi
+            ;;
         -*)
             echo "Unknown option: $1"
             usage
@@ -85,6 +125,8 @@ done
 # Perform environment setup.
 export PROJECT_ENVIRONMENT_SET="false"
 if [[ "true" == "${TRY_SETUP}" ]]; then
+    export VLLM_CMD
+    export HF_MODEL
 
     if [[ "true" == "${CONDA_FLAG}" || "false" == "${CONTAINER_FLAG}" ]]
     then

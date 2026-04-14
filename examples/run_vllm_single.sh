@@ -27,19 +27,19 @@
 # The operation here is:
 # - if more than a single node is being used, close down ray cluster;
 #
-# This script can be run interactively:
-#     ./run_vllm_single.sh [<conda env>]
+# This script can be run interactively from a compute node, for example:
+#     ./run_vllm_single.sh -a -r bench_throughput
 # or can be submitted to a Slurm batch system, substituting
-# valid project account for <project_account>:.
-#     sbatch --acount=<project_account> run_vllm_single.sh [<conda env>]
-# The optional positional argument defines the name of the conda environment
-# to be used subsequently.  If the argument is omitted, the name used is
-# "${CONDA_ENV}" if not an empty string, or otherwise "vllm".
+# valid project account for <project_account>, for example:.
+#     sbatch --acount=<project_account> run_vllm_single.sh -c -r env
+# For more information about options, from a compute node or login node use:
+#     ./run_vllm_single.sh -h
 #
 # This script can also run in parallel on multiple nodes,
 # using srun within a Slurm script: see ./go_vllm.sh.
 # The number of nodes to be used can be set in the #SBATCH directives
-# at the start of ./go_vllm.sh, but in the current script should be left as 1.
+# at the start of ./go_vllm.sh, but in the current script (./run_vllm_single.sh)
+# should be left as 1.
 # For informtion about #SBATCH directives, see:
 # https://slurm.schedmd.com/sbatch.html#SECTION_DESCRIPTION
 
@@ -52,8 +52,73 @@ if [[ ${PROJECT_HOME} == /var/spool/* ]]; then
     PROJECT_HOME=$(dirname $(pwd))
 fi
 
+# Allow for distributed processing.
+if [[ -z "${SLURM_NNODES}" ]]; then
+    export SLURM_NNODES=1
+fi
+
+if [[ ${SLURM_NNODES} -gt 1 ]]; then
+    VLLM_DISTRIBUTED_OPT=" --distributed-executor-backend ray"
+else
+    VLLM_DISTRIBUTED_OPT=""
+fi
+
+# Define command shortcuts.
+SHORTCUTS=("VLLM_BENCH_THROUGHPUT" "VLLM_BENCH_SERVE" "VLLM_SERVE")
+
+# Use exclamation marks below to avoid forced exit (with set -e)
+# whenever read reaches end of stream (non-zero return code).
+
+! read -r -d "" VLLM_BENCH_THROUGHPUT << EOS
+vllm bench throughput\
+ --model=\${HF_MODEL}\
+ -tp \${SLURM_NTASKS}\
+ --input-len=1024\
+ --output-len=1024\
+ --enforce-eager${VLLM_DISTRIBUTED_OPT}
+EOS
+
+! read -r -d "" VLLM_BENCH_SERVE << EOS
+vllm bench serve\
+ --backend openai\
+ --model \${HF_MODEL}\
+ --dataset-name random\
+ --random-input-len 512\
+ --random-output-len 512\
+ --random-range-ratio 1\
+ --num-prompts 1000\
+ --max-concurrency 10\
+ --host ${VLLM_HOST:-$(hostname)}\
+ --port ${VLLM_PORT:-8000}
+EOS
+
+! read -r -d "" VLLM_SERVE << EOS
+vllm serve\
+ \${HF_MODEL}\
+ -tp \${SLURM_NTASKS}\
+ --dtype bfloat16\
+ --max-model-len 32768\
+ --host $(hostname)\
+ --port ${VLLM_PORT:-8000}\
+ --enforce-eager${VLLM_DISTRIBUTED_OPT}
+EOS
+
 # Ensure that help in ../scripts/setup_project.sh refers to this script.
-export SETUP_INFO="    Launch application in vLLM environment on single node."
+SETUP_INFO="Launch application in vLLM environment on single node.
+
+Defined command shortcuts:"
+for SHORTCUT in "${SHORTCUTS[@]}"; do
+    SHORTCUT_LC=$(echo "${SHORTCUT}" | tr '[:upper:]' '[:lower:]')
+    SETUP_INFO="${SETUP_INFO}
+    ${SHORTCUT_LC}: ${!SHORTCUT}"
+done
+SETUP_INFO="${SETUP_INFO}
+
+The environment variable \"HF_MODEL\" can be set via the option -m.
+The environment variable \"SLURM_NTASKS\" is calculated based on allocated nodes
+and GPUs when sourcing:
+    ${PROJECT_HOME}/scripts/setup_slurm.sh"
+export SETUP_INFO
 
 # Perform environment setup; initiate ray cluster if running on multiple nodes.
 source ${PROJECT_HOME}/scripts/start_task.sh
@@ -66,14 +131,41 @@ if [[ -z "${APPTAINER_CONTAINER}" ]]; then
     export TASK_T1=${SECONDS}
     echo ""
     echo "Task start on $(hostname): $(date)"
+
+    # Define task to be run, with shortcut substitution.
+    # This is done before container launch, as envsubst
+    # isn't available in the container environment.
+    SHORTCUT_USED=""
+    TASK_CMD=${VLLM_CMD}
+    VLLM_CMD_LC=$(echo "${VLLM_CMD}" | tr '[:upper:]' '[:lower:]')
+    for SHORTCUT in "${SHORTCUTS[@]}"; do
+        SHORTCUT_LC=$(echo "${SHORTCUT}" | tr '[:upper:]' '[:lower:]')
+        if [[ ${VLLM_CMD_LC} == ${SHORTCUT_LC} ]]; then
+            TASK_CMD=${!SHORTCUT}
+	    SHORTCUT_USED=${SHORTCUT_LC}
+            break
+        fi
+    done
+    export TASK_CMD="$(echo "${TASK_CMD}" | envsubst)"
+    export SHORTCUT_USED
+
+    if [[ "vllm_serve" == ${SHORTCUT_USED} ]];then
+        if [[ -z ${VLLM_API_KEY} ]]; then
+            export VLLM_API_KEY=$(pwgen 16 1)
+	    echo ""
+	    echo "INFO: Setting api-key to: ${VLLM_API_KEY}"
+	    echo \
+            "INFO: To pre-define api-key, set environment variable VLLM_API_KEY"
+        fi
+    fi
 fi
 
 if [[ ! -z ${CONTAINER_LAUNCH} && -z ${APPTAINER_CONTAINER} ]]; then
-    CMD=(${CONTAINER_LAUNCH} $0)
+    LAUNCH_CMD=(${CONTAINER_LAUNCH} $0)
     echo ""
     echo "Launching apptainer on $(hostname): $(date)"
-    echo "${CMD[@]}"
-    "${CMD[@]}"
+    echo "${LAUNCH_CMD[@]}"
+    "${LAUNCH_CMD[@]}"
     exit
 fi
 set --
@@ -82,48 +174,36 @@ if [[ "true" != "${IS_HEAD_NODE}" ]]; then
     exit
 fi
 
-# Define model.
-if [[ "${OSTYPE}" == "darwin"* ]]; then
-    MODEL="Qwen/Qwen3-0.6B"
-else
-    MODEL="Qwen/Qwen3-4B"
-fi
-
 # Define storage locations and logging level.
-VLLM_STORE="/home/kh296/rds/hpc-work/vllm"
+if [[ -z "${VLLM_STORE}" ]]; then
+    HPC_WORK="$(realpath ${HOME}/rds/hpc-work)"
+    if [[ -d "${HPC_WORK} ]]; then
+        VLLM_STORE="${HPC_WORK}/vllm"
+    else
+        VLLM_STORE="${PROJECT_HOME}/vllm"
+    fi
+fi
 export VLLM_CACHE_ROOT="${VLLM_STORE}"
 export HF_HOME="${VLLM_STORE}"
 export HF_HUB_CACHE="${VLLM_STORE}"
 export VLLM_LOGGING_LEVEL="INFO"
 
-# Define options to be passed to application.
-# Exclamation mark used to avoid forced exit (with set -e)
-# when read reaches end of stream (non-zero return code).
-! read -r -d "" VLLM_OPTS << EOS
- --model=${MODEL}\
- -tp ${SLURM_NTASKS}\
- --input-len=1024\
- --output-len=1024\
- --enforce-eager
-EOS
-if [[ ${SLURM_NNODES} -gt 1 ]]; then
-    VLLM_OPTS="${VLLM_OPTS} --distributed-executor-backend ray"
-fi
-
-# Run vLLM benchmarking.
-# For information about vLLM benchmarking, see:
-# https://docs.vllm.ai/en/latest/benchmarking/cli/
-BENCH_TYPE="throughput"
-CMD=(vllm bench ${BENCH_TYPE} ${VLLM_OPTS})
+# Run vLLM command.
+# For vLLM CLI reference, see:
+# https://docs.vllm.ai/en/stable/cli/
 T3=${SECONDS}
 echo ""
-echo "vLLM benchmarking started: $(date)"
-echo "${CMD[@]}"
+echo "Command execution started: $(date)"
+echo "${TASK_CMD}"
 echo ""
-"${CMD[@]}"
+if [[ "vllm_serve" == ${SHORTCUT_USED} ]];then
+    TASK_CMD="${TASK_CMD} --api-key ${VLLM_API_KEY}"
+fi
+read -r -a TASK_CMD <<< "${TASK_CMD}"
+"${TASK_CMD[@]}"
 echo ""
-echo "vLLM benchmarking completed: $(date)"
-echo "Time for vLLM benchmarking: $((${SECONDS}-${T3})) seconds"
+echo "Command execution completed: $(date)"
+echo "Command execution time: $((${SECONDS}-${T3})) seconds"
 
 # Close down ray cluster, and perform cleanup.
 source ${PROJECT_HOME}/scripts/end_task.sh
