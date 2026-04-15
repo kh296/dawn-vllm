@@ -4,7 +4,7 @@
 #SBATCH --partition=pvc9        # cluster partition to be used
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --gres=gpu:4            # number of allocated gpus per node
-#SBATCH --time=02:00:00         # total run time limit (HH:MM:SS)
+#SBATCH --time=04:00:00         # total run time limit (HH:MM:SS)
 
 # Script for starting a vLLM server on one or multiple nodes,
 # and from another node running a benchmark test or online serving througput.
@@ -44,6 +44,9 @@ VLLM_API_KEY=${API_KEY} ./go_vllm.sh -a -r vllm_serve &
 while ! ss -tunlp | grep -q vllm; do
   sleep 10
 done
+echo ""
+echo "Server detected."
+echo ""
 
 if [[ -z "${SLURM_NNODES}" ]]; then
     SLURM_NNODES=1
@@ -56,9 +59,12 @@ export HEAD_NODE_ADDRESS="${HEAD_NODE_IP}:${HEAD_NODE_PORT}"
     until ray status --address=${HEAD_NODE_ADDRESS} >/dev/null 2>&1; do
         sleep 10
     done
+    echo ""
+    echo "Ray cluster detected."
+    echo ""
 fi
 
 # Submit a job to run the benchmark test.
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
 LOG_FILE="vllm_bench_serve_${SLURM_JOB_ID:-${TIMESTAMP}}_subjob.log"
-sbatch --wait --nodes=1 --gres=gpu:1 --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output="LOG_FILE" ./go_vllm.sh -a -r vllm_bench_serve
+sbatch --wait --nodes=1 --gres=gpu:1 --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output="${LOG_FILE}" ./go_vllm.sh -a -r vllm_bench_serve

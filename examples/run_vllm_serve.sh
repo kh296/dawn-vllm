@@ -4,7 +4,7 @@
 #SBATCH --partition=pvc9        # cluster partition to be used
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --gres=gpu:4            # number of allocated gpus per node
-#SBATCH --time=02:00:00         # total run time limit (HH:MM:SS)
+#SBATCH --time=04:00:00         # total run time limit (HH:MM:SS)
 
 # Script for running vLLM benchmark on a single node,
 # which in a ray cluster can be either the head node or a worker node.
