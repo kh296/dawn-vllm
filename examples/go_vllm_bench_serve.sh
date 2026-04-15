@@ -4,7 +4,7 @@
 #SBATCH --partition=pvc9        # cluster partition to be used
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --gres=gpu:4            # number of allocated gpus per node
-#SBATCH --time=01:00:00         # total run time limit (HH:MM:SS)
+#SBATCH --time=02:00:00         # total run time limit (HH:MM:SS)
 
 # Script for starting a vLLM server on one or multiple nodes,
 # and from another node running a benchmark test or online serving througput.
