@@ -104,14 +104,21 @@ vllm serve\
 EOS
 
 # Ensure that help in ../scripts/setup_project.sh refers to this script.
-SETUP_INFO="Launch application in vLLM environment on single node.
+if [[ -z ${SETUP_INFO} ]]; then
+    SETUP_INFO="Launch application in vLLM environment on single node."
+fi
+
+if [[ "true" != "${NO_RUN_OPTION}" ]];then
+    SETUP_INFO="${SETUP_INFO}
 
 Defined command shortcuts:"
-for SHORTCUT in "${SHORTCUTS[@]}"; do
-    SHORTCUT_LC=$(echo "${SHORTCUT}" | tr '[:upper:]' '[:lower:]')
-    SETUP_INFO="${SETUP_INFO}
-    ${SHORTCUT_LC}: ${!SHORTCUT}"
-done
+    for SHORTCUT in "${SHORTCUTS[@]}"; do
+        SHORTCUT_LC=$(echo "${SHORTCUT}" | tr '[:upper:]' '[:lower:]')
+        SETUP_INFO="${SETUP_INFO}
+        ${SHORTCUT_LC}: ${!SHORTCUT}"
+    done
+fi
+
 SETUP_INFO="${SETUP_INFO}
 
 The environment variable \"HF_MODEL\" can be set via the option -m.

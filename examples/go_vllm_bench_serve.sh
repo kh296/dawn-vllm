@@ -34,11 +34,21 @@ if [[ ! -d "${PROJECT_HOME}" ]]; then
     fi
 fi
 
+# Ensure that help in ../scripts/setup_project.sh refers to this script.
+if [[ " $* " == *" -h "* ]]; then
+    export SETUP_LAUNCH="$(basename $0)"
+    export SETUP_INFO=\
+"    Start vLLM server on one or multiple nodes, then run server benchmarking."
+    export NO_RUN_OPTION="true"
+    source ${PROJECT_HOME}/scripts/setup_project.sh -h
+    exit 0
+fi
+
 # Generate an API key.
 API_KEY=$(pwgen 16 1)
 
 # Start a vLLM server.
-VLLM_API_KEY=${API_KEY} ./go_vllm.sh -a -r vllm_serve &
+VLLM_API_KEY=${API_KEY} ./go_vllm.sh $@ -r vllm_serve &
 
 # Wait until server startup has completed.
 while ! ss -tunlp | grep -q vllm; do
@@ -67,4 +77,4 @@ fi
 # Submit a job to run the benchmark test.
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
 LOG_FILE="vllm_bench_serve_${SLURM_JOB_ID:-${TIMESTAMP}}_subjob.log"
-sbatch --wait --nodes=1 --gres=gpu:1 --reservation=new_image --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output="${LOG_FILE}" ./go_vllm.sh -a -r vllm_bench_serve
+sbatch --wait --nodes=1 --gres=gpu:1 --reservation=new_image --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output="${LOG_FILE}" ./go_vllm.sh $@ -r vllm_bench_serve

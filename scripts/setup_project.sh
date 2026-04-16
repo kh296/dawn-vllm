@@ -37,8 +37,14 @@ usage() {
     if [[ -z "${SETUP_INFO}" ]]; then
         SETUP_INFO="Set up vLLM environment."
     fi
+    if [[ "true" == "${NO_RUN_OPTION}" ]]; then
+        RUN_OPTION=""
+    else
+        RUN_OPTION=" [-r [<command or shortcut>]]"
+    fi
+    echo ""
     echo \
-    "usage: ${SETUP_LAUNCH} [-h] [-c [<conda env>]] [-a [<container image>]] [-r [<command or shortcut>]] [-m [<model identifier]]"
+    "usage: ${SETUP_LAUNCH} [-h] [-c [<conda env>]] [-a [<container image>]]${RUN_OPTION} [-m [<model identifier]]"
     echo ""
     echo "${SETUP_INFO}"
     echo ""
@@ -46,7 +52,10 @@ usage() {
     echo "    -h: Print this help."
     echo "    -c: Use conda environment <conda env>."
     echo "    -a: Use apptainer image at path <image path>."
-    echo "    -r: Set environment variable VLLM_CMD to <command or shortcut>."
+    if [[ ! -z "${RUN_OPTION}" ]]; then
+        echo \
+        "    -r: Set environment variable VLLM_CMD to <command or shortcut>."
+    fi
     echo "    -m: Set environment variable HF_MODEL to <model identifier>."
     echo "If <conda env> not specified, defaults to: \"${CONDA_ENV}\"."
     echo \
@@ -56,12 +65,14 @@ usage() {
     echo "    try using apptainer image."
     echo "If -c specified and -a unspecified, only try using conda environment."
     echo "If -a specified and -c unspecified, only try using apptainer image."
-    echo "If <command or shortcut> specified, it should correspond to"
-    echo "    a command that can be run in the vLLM environment,"
-    echo "    or to a user-defined shortcut for such a command."
-    echo "    If it includes spaces, it should be enclosed in quotes."
-    echo "If -r unspecified, or <command or shortcut> unspecified",
-    echo "    the environment variable VLLM_CMD is set to \"${VLLM_CMD}\"."
+    if [[ ! -z "${RUN_OPTION}" ]]; then
+        echo "If <command or shortcut> specified, it should correspond to"
+        echo "    a command that can be run in the vLLM environment,"
+        echo "    or to a user-defined shortcut for such a command."
+        echo "    If it includes spaces, it should be enclosed in quotes."
+        echo "If -r unspecified, or <command or shortcut> unspecified",
+        echo "    the environment variable VLLM_CMD is set to \"${VLLM_CMD}\"."
+    fi
     echo "If <model identifier> specified, it should correspond to"
     echo "    the identifier of a Hugging Face Model, or to the local path"
     echo "    to such a model."

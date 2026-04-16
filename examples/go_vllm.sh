@@ -41,9 +41,11 @@ unset SLURM_MEM_PER_NODE
 SLURM_EXPORT_ENV="ALL"
 
 # Ensure that help in ../scripts/setup_project.sh refers to this script.
-export SETUP_LAUNCH="$(basename $0)"
-export SETUP_INFO=\
-"    Launch application in vLLM environment on multiple nodes."
+if [[ -z "${SETUP_LAUNCH}" ]]; then
+    export SETUP_LAUNCH="$(basename $0)"
+    export SETUP_INFO=\
+"    Launch application in vLLM environment on one or multiple nodes."
+fi
 
 echo ""
 RUN_SCRIPT=$(realpath ./run_vllm_single.sh)
