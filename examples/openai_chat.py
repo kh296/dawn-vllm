@@ -52,7 +52,6 @@ history.append({"role": "user", "content":
 print_latest(history)
 
 response = client.responses.create(
-    model = "Qwen/Qwen3-4B",
     input = history,
     store = False,
     )
@@ -67,7 +66,6 @@ history.append({"role": "user",
 print_latest(history)
 
 response = client.responses.create(
-    model = "Qwen/Qwen3-4B",
     input = history,
     store = False,
     )
