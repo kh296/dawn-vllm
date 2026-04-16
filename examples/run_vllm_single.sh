@@ -85,7 +85,8 @@ vllm bench serve\
  --dataset-name random\
  --random-input-len 512\
  --random-output-len 512\
- --num-prompts 100\
+ --random-range-ratio 0.5\
+ --num-prompts 200\
  --max-concurrency 1\
  --host ${VLLM_HOST:-$(hostname)}\
  --port ${VLLM_PORT:-8000}
