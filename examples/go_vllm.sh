@@ -2,7 +2,7 @@
 #SBATCH --job-name=vllm         # create a short name for the job
 #SBATCH --output=%x_%j.log      # job output file
 #SBATCH --partition=pvc9        # cluster partition to be used
-#SBATCH --nodes=2               # number of nodes
+#SBATCH --nodes=1               # number of nodes
 #SBATCH --gres=gpu:4            # number of allocated gpus per node
 #SBATCH --time=04:00:00         # total run time limit (HH:MM:SS)
 
