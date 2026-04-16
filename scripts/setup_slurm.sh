@@ -80,7 +80,6 @@ unset SLURM_MEM_PER_NODE
 SLURM_EXPORT_ENV="ALL"
 
 # Create list of node names, and identify the head node.
-command -v scontrol 1>/dev/null 2>&1
 if command -v scontrol 1>/dev/null 2>&1; then
     NODES="$(echo $(scontrol show hostnames ${SLURM_JOB_NODELIST})\
         | sed 's/ /,/g')"
