@@ -183,7 +183,7 @@ fi
 
 # Define storage locations and logging level.
 if [[ -z "${VLLM_STORE}" ]]; then
-    HPC_WORK="$(realpath ${HOME}/rds/hpc-work)"
+    HPC_WORK="${HOME}/rds/hpc-work"
     if [[ -d "${HPC_WORK}" ]]; then
         VLLM_STORE="${HPC_WORK}/vllm"
     else
