@@ -1,6 +1,7 @@
 apptainer/
 envs/
 projects/
+vllm/
 .DS_Store
 __pycache__
 *.log
