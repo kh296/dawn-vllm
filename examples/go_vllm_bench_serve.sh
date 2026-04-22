@@ -77,4 +77,4 @@ fi
 # Submit a job to run the benchmark test.
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
 LOG_FILE="vllm_bench_serve_${SLURM_JOB_ID:-${TIMESTAMP}}_subjob.log"
-sbatch --wait --nodes=1 --gres=gpu:1 --reservation=new_image --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output="${LOG_FILE}" ./go_vllm.sh $@ -r vllm_bench_serve
+sbatch --wait --nodes=1 --gres=gpu:1 --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output="${LOG_FILE}" ./go_vllm.sh $@ -r vllm_bench_serve
