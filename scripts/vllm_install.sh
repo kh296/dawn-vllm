@@ -139,9 +139,10 @@ elif [[ "macOS" == "${SYSTEM}" ]]; then
     LOCAL_STORE="${HOME}/local-store/vllm"
 fi
 
+rm -rf ${SETUP}
 cat <<EOF >${SETUP}
 # Setup script for ${CONDA_ENV} on ${SYSTEM}.
-# Generated: $(date)
+# Generated on $(hostname), $(date +"%Y-%m-%d (%a) %H:%M:%S %Z").
 
 EOF
 
@@ -240,6 +241,7 @@ fi
 echo ""
 echo "${CMD}"
 eval "${CMD}"
+T1=${SECONDS}
 
 # Check installation by importing modules.
 CMD="python -c 'from vllm import LLM, SamplingParams'"
@@ -247,10 +249,12 @@ echo ""
 echo "Performing initial imports:"
 echo "${CMD}"
 eval "${CMD}"
+T2=${SECONDS}
 
 echo ""
 echo "Installation of ${PROJECT_NAME} for ${OSTYPE} on $(hostname) completed: $(date)"
-echo "Installation time: $((${SECONDS}-${T0})) seconds"
+echo "Time for installation: $((${T1}-${T0})) seconds"
+echo "Time for initial imports:: $((${T2}-${T1})) seconds"
 
 echo ""
 echo "Set up environment for ${PROJECT_NAME} with:"
