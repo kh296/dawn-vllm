@@ -83,14 +83,14 @@ vllm bench serve\
  --backend openai\
  --model \${HF_MODEL}\
  --dataset-name random\
- --random-input-len 512\
- --random-output-len 512\
- --random-range-ratio 0.5\
- --num-prompts 200\
- --max-concurrency 1\
+ --num-prompts 1000\
+ --max-concurrency 500\
  --host ${VLLM_HOST:-$(hostname)}\
  --port ${VLLM_PORT:-8000}
 EOS
+# --random-input-len 512\
+# --random-output-len 512\
+# --random-range-ratio 0.5\
 
 ! read -r -d "" VLLM_SERVE << EOS
 vllm serve\
@@ -98,6 +98,7 @@ vllm serve\
  -tp \${SLURM_NTASKS}\
  --dtype bfloat16\
  --max-model-len 32768\
+ --max-num-seqs 50\
  --host $(hostname)\
  --port ${VLLM_PORT:-8000}\
  --enforce-eager${VLLM_DISTRIBUTED_OPT}
