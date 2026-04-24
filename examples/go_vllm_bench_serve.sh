@@ -21,6 +21,8 @@
 # of submitting the benchmarking job, or otherwise will be
 # date and time in the format YYYY:mm:dd_HH:MM:SS.
 
+T1=${SECONDS}
+
 # Unset and set Slurm variables for compatibility with srun.
 unset SLURM_MEM_PER_CPU
 unset SLURM_MEM_PER_NODE
@@ -43,6 +45,18 @@ if [[ " $* " == *" -h "* ]]; then
     source ${PROJECT_HOME}/scripts/setup_project.sh -h
     exit 0
 fi
+
+# Determine whether benchmark is to be run in a subjob (-s option) or directly.
+FILTERED_ARGS=()
+SUBMIT_SUBJOB="false"
+for ARG in "$@"; do
+    if [[ "-s" == "${ARG}" ]]; then
+        SUBMIT_SUBJOB="true"
+    else
+        FILTERED_ARGS+=("${ARG}")
+    fi
+done
+set -- "${FILTERED_ARGS[@]}"
 
 # Generate an API key.
 API_KEY=$(pwgen 16 1)
@@ -74,7 +88,21 @@ export HEAD_NODE_ADDRESS="${HEAD_NODE_IP}:${HEAD_NODE_PORT}"
     echo ""
 fi
 
-# Submit a job to run the benchmark test.
+echo "Server setup time: $((${SECONDS}-${T1})) seconds"
+echo ""
+
+# Run the benchmark test, in a subjob (option -s) or directly.
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
 LOG_FILE="vllm_bench_serve_${SLURM_JOB_ID:-${TIMESTAMP}}_subjob.log"
-sbatch --wait --nodes=1 --gres=gpu:1 --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output="${LOG_FILE}" ./go_vllm.sh $@ -r vllm_bench_serve
+if [[ "true" == "${SUBMIT_SUBJOB}" ]]; then
+    CMD="sbatch --wait --nodes=1 --gres=gpu:1 --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output=${LOG_FILE} ./go_vllm.sh $@ -r vllm_bench_serve"
+    echo "Submitting batch job to run benchmark test:"
+else
+    CMD="OPENAI_API_KEY=${API_KEY} VLLM_HOST=$(hostname) ./go_vllm.sh $@ -r vllm_bench_serve 1>${LOG_FILE} 2>&1"
+    echo "Running benchmark test:"
+fi
+echo "${CMD}"
+eval "${CMD}"
+
+echo ""
+echo "Job time: $((${SECONDS}-${T1})) seconds"
