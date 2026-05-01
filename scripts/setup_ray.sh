@@ -3,6 +3,10 @@
 # Script for initiating, or adding to, a ray cluster.
 # This script can be run on multiple nodes of an allocation,
 # via srun or a script run via srun.
+# This script may be run interactively on a Dawn compute node:
+# ./setup_ray.sh [<options>]
+# For information about options, use:
+# ./setup_ray.sh -h
 
 # Ensure PROJECT_HOME defined.
 if [[ ! -d "${PROJECT_HOME}" ]]; then
@@ -14,7 +18,9 @@ fi
 
 if [[ true != "${PROJECT_ENVIRONMENT_SET}" ]]; then
     # Ensure that help in ../scripts/setup_project.sh refers to this script.
-    export SETUP_INFO= "    Set up ray cluster across multiple nodes."
+    export SETUP_INFO="    Set up ray cluster across multiple nodes."
+    export NO_RUN_OPTION="true"
+    export NO_MODEL_OPTION="true"
     source ${PROJECT_HOME}/scripts/setup_project.sh
     if [[ true != "${PROJECT_ENVIRONMENT_SET}" ]]; then
         exit

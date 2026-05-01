@@ -10,32 +10,32 @@
 # which in a ray cluster can be either the head node or a worker node.
 #
 # Startup operations are performed using:
-#     ../scripts/start_task.sh
+# ../scripts/start_task.sh
 # The main operations are:
 # - environment setup for running vLLM, with reference to <conda env>,
 #   the conda environment to be used (see next section):
-#     ../scripts/setup_project.sh
-#     ../scripts/<conda env>-setup.sh
+#   ../scripts/setup_project.sh
+#   ../scripts/<conda env>-setup.sh
 # - checking of Slurm environment variables, and determination from these
 #   of environment variables used in vLLM configuration:
-#     ../scripts/setup_slurm.sh
+#   ../scripts/setup_slurm.sh
 # - if more than a single node is being used, creation of ray cluster:
-#     ../scripts/setup_ray.sh
+#   ../scripts/setup_ray.sh
 #
 # Closedown operations are performed using:
-#     ../scripts/end_task.sh
+# ../scripts/end_task.sh
 # The operation here is:
 # - if more than a single node is being used, close down ray cluster;
 #
-# This script can be run interactively from a compute node, for example:
-#     ./run_vllm_single.sh -a -r bench_throughput
+# This script can be run interactively from a compute node:
+# ./run_vllm_single.sh [<options>]
 # or can be submitted to a Slurm batch system, substituting
-# valid project account for <project_account>, for example:.
-#     sbatch --acount=<project_account> run_vllm_single.sh -c -r env
-# For more information about options, from a compute node or login node use:
-#     ./run_vllm_single.sh -h
+# valid project account for <project_account>:
+# sbatch --acount=<project_account> run_vllm_single.sh [<options>]
+# For information about options, from a compute node or login node use:
+# ./run_vllm_single.sh -h
 #
-# This script can also run in parallel on multiple nodes,
+# This script can also be run in parallel on multiple nodes,
 # using srun within a Slurm script: see ./go_vllm.sh.
 # The number of nodes to be used can be set in the #SBATCH directives
 # at the start of ./go_vllm.sh, but in the current script (./run_vllm_single.sh)
@@ -123,8 +123,8 @@ fi
 SETUP_INFO="${SETUP_INFO}
 
 The environment variable \"HF_MODEL\" can be set via the option -m.
-The environment variable \"SLURM_NTASKS\" is calculated based on allocated nodes
-and GPUs when sourcing:
+The environment variable \"SLURM_NTASKS\" is calculated from allocated nodes
+    and GPUs in a script sourced internally:
     ${PROJECT_HOME}/scripts/setup_slurm.sh"
 export SETUP_INFO
 

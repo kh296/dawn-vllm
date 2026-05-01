@@ -1,6 +1,11 @@
 #!/bin/bash -l
 
 # Script for ensuring ray cluster stopped, and for performing cleanup.
+#
+# This script can be sourced in a bash shell:
+# source ./setup_slurm.sh
+# or can be run:
+# ./setup_slurm.sh
 
 # The command "ray stop" doesn't always stop GCS server proceses cleanly.
 # Kill these explicitly, in practice stopping the ray cluster.

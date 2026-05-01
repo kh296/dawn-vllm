@@ -12,24 +12,25 @@
 # at ${CONDA_HOME}.  If CONDA_HOME is null but CONDA_PREFIX is non-null,
 # the former is set to be equal to the latter.  If both CONDA_HOME and
 # CONDA_PREFIX are null, CONDA_HOME is set to ${HOME}/miniforge3.  In this
-# case, if conda isn't available at ${HOME}/miniforge 3 then, on Dawn,
-# the Miniforge3 flavour of conda will be installed to
-# ${HOME}/rds/hpc-work/miniforge3, and this directory will be linked
-# to ${HOME}/miniforge3.  For information about the Miniforge3 flavour
+# case, if conda isn't available at ${HOME}/miniforge3 then
+# the Miniforge3 flavour of conda will be installed by running
+# ./miniforge3_install.sh with default settings.
+# For information about the Miniforge3 flavour
 # of conda, see: https://conda-forge.org/download/
+# For information about ./miniforge3_install.sh, use:
+# ./miniforge3_install.sh -h
 #
-# After installation, if the environment variable CONDA_ENV isn't set
-# before starting this, the environment for using vLLM can
-# be activated by sourcing the file vllm-setup.sh,
-# created in the directory ../envs relative to where the current script is run.
-# Otherwise, the file to source is ../envs/${CONDA_ENV}-setup.sh
+# After installation, if the environment variable CONDA_ENV wasn't set,
+# the environment for using vLLM can be activated by sourcing the file
+# vllm-setup.sh, created in the directory ../envs relative to where
+# the current script is run.  Otherwise, the file to source is
+# ../envs/${CONDA_ENV}-setup.sh
 #
 # On Dawn, the current script may be run interactively on a compute node
 # (not on a login node):
 # bash ./vllm_install.sh
 # or it may be submitted from a login node to the Slurm batch system:
 # sbatch --account=<project account> ./vllm_install.sh
-#
 
 # Exit at first failure.
 set -e
@@ -49,7 +50,9 @@ usage() {
     echo "    \"\${CONDA_HOME}\", \"\${CONDA_PREFIX}\", \"\${HOME}/miniforge3\""
     echo "    If last of these is selected, conda will be installed here"
     echo "    if not already present."
-    echo "If -e omitted, name for conda environment defaults to \"${PROJECT_NAME_LC}\"."
+    echo "If -e omitted, the name for the conda environment defaults to \"${PROJECT_NAME_LC}\"."
+    echo "Any pre-existing conda environment <conda env> (specified with -e)"
+    echo "    or \"${PROJECT_NAME_LC}\" (-e omitted) will be removed."
 }
 while [[ $# -gt 0 ]]; do
     case "$1" in

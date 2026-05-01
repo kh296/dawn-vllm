@@ -24,7 +24,7 @@
 # of the head node when running in a ray cluster.
 # 
 # This script can be sourced in a bash shell:
-#     source ./setup_slurm.sh
+# source ./setup_slurm.sh
 
 # Default to 1 node allocated if running outside of Slurm.
 if [[ -z "${SLURM_NNODES}" ]]; then

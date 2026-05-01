@@ -1,5 +1,8 @@
 # Script to perform environment setup, and to initiate ray cluster,
 # prior to running vLLM application.
+#
+# This script can be sourced in a bash shell:
+# source ./setup_slurm.sh
 
 # Ensure PROJECT_HOME defined.
 if [[ -d "${PROJECT_HOME}" ]]; then

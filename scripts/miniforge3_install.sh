@@ -12,8 +12,8 @@
 # https://github.com/conda-forge/miniforge
 
 # By default:
-# If the directory ${HOME}/rds exists, this script installs to:
-# ${HOME}/rds/miniforge3
+# If the directory ${HOME}/rds/hpc-work exists, this script installs to:
+# ${HOME}/rds/hpc-work/miniforge3
 # and creates a soft link to this directory from:
 # ${HOME}/miniforge3
 # Otherwise, this script installs to:

@@ -2,7 +2,9 @@
 # PATH and LD_LIBRARY_PATH as needed.
 #
 # This script can be sourced in a bash shell:
-#     source ./setup_project.sh [conda env]
+# source ./setup_project.sh [<options>]
+# For information about options, use:
+# source ./setup_project.sh -h
 
 # Ensure PROJECT_HOME defined.
 if [[ ! -d "${PROJECT_HOME}" ]]; then
@@ -42,29 +44,38 @@ usage() {
     else
         RUN_OPTION=" [-r [<command or shortcut>]]"
     fi
-    echo ""
+    if [[ "true" == "${NO_MODEL_OPTION}" ]]; then
+        MODEL_OPTION=""
+    else
+        MODEL_OPTION=" [-m [<model identifier>]]"
+    fi
     echo \
-    "usage: ${SETUP_LAUNCH} [-h] [-c [<conda env>]] [-a [<container image>]]${RUN_OPTION} [-m [<model identifier]]"
+    "usage: ${SETUP_LAUNCH} [-h] [-a [<container image>]] [-c [<conda env>]]${RUN_OPTION}${MODEL_OPTION}${EXTRA_OPTS_USAGE}"
     echo ""
     echo "${SETUP_INFO}"
     echo ""
     echo "Options:"
     echo "    -h: Print this help."
-    echo "    -c: Use conda environment <conda env>."
     echo "    -a: Use apptainer image at path <image path>."
+    echo "    -c: Use conda environment <conda env>."
     if [[ ! -z "${RUN_OPTION}" ]]; then
         echo \
         "    -r: Set environment variable VLLM_CMD to <command or shortcut>."
     fi
-    echo "    -m: Set environment variable HF_MODEL to <model identifier>."
-    echo "If <conda env> not specified, defaults to: \"${CONDA_ENV}\"."
+    if [[ ! -z "${MODEL_OPTION}" ]]; then
+        echo "    -m: Set environment variable HF_MODEL to <model identifier>."
+    fi
+    if [[ ! -z ${EXTRA_OPTS} ]]; then
+        echo "${EXTRA_OPTS}"
+    fi
     echo \
     "If <container image> not specified, defaults to: \"${CONTAINER_IMAGE}\"."
-    echo "If both -c and -a specified, or if neither of -c and -a specified,"
-    echo "    first try using conda environment, and only if unsuccessful"
-    echo "    try using apptainer image."
-    echo "If -c specified and -a unspecified, only try using conda environment."
+    echo "If <conda env> not specified, defaults to: \"${CONDA_ENV}\"."
+    echo "If both -a and -c specified, or if neither of -a and -c specified,"
+    echo "    first try using apptainer image, and only if unsuccessful"
+    echo "    try using conda environment."
     echo "If -a specified and -c unspecified, only try using apptainer image."
+    echo "If -c specified and -a unspecified, only try using conda environment."
     if [[ ! -z "${RUN_OPTION}" ]]; then
         echo "If <command or shortcut> specified, it should correspond to"
         echo "    a command that can be run in the vLLM environment,"
@@ -73,14 +84,17 @@ usage() {
         echo "If -r unspecified, or <command or shortcut> unspecified",
         echo "    the environment variable VLLM_CMD is set to \"${VLLM_CMD}\"."
     fi
-    echo "If <model identifier> specified, it should correspond to"
-    echo "    the identifier of a Hugging Face Model, or to the local path"
-    echo "    to such a model."
-    echo "If -m unspecified, or <model identifier> unspecified",
-    echo "    the environment variable HF_MODEL is set to \"${HF_MODEL}\"."
-    echo "The environment variables VLLM_CMD and HF_MODEL should be handled"
-    echo "    in the user's run script (run_vllm_single.sh or similar)."
-    echo ""
+    if [[ ! -z "${MODEL_OPTION}" ]]; then
+        echo "If <model identifier> specified, it should correspond to"
+        echo "    the identifier of a Hugging Face Model, or to the local path"
+        echo "    of such a model."
+        echo "If -m unspecified, or <model identifier> unspecified",
+        echo "    the environment variable HF_MODEL is set to \"${HF_MODEL}\"."
+    fi
+    if [[ ! -z "${RUN_OPTION}" ]]; then
+        echo "The environment variables VLLM_CMD and HF_MODEL should be handled"
+        echo "    in the user's run script (run_vllm_single.sh or similar)."
+    fi
     unset SETUP_LAUNCH
 }
 while [[ $# -gt 0 ]]; do
@@ -139,21 +153,6 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
     export VLLM_CMD
     export HF_MODEL
 
-    if [[ "true" == "${CONDA_FLAG}" || "false" == "${CONTAINER_FLAG}" ]]
-    then
-       SETUP_SCRIPT="${PROJECT_HOME}/envs/${CONDA_ENV}-setup.sh"
-        if [[ -f "${SETUP_SCRIPT}" ]]; then
-            set --
-            SETUP=(source "${SETUP_SCRIPT}")
-            echo ""
-            echo "${SETUP[@]}"
-            echo ""
-            "${SETUP[@]}"
-            export PROJECT_ENVIRONMENT_SET="true"
-	    CONDA_FLAG="true"
-        fi
-    fi
-
     if [[ "true" == "${CONTAINER_FLAG}" || "false" == "${CONDA_FLAG}" ]]
     then
         if [[ -f "${CONTAINER_IMAGE}" ]]; then
@@ -169,6 +168,21 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
             export W_LONG_MAX_MODEL_LEN=1
             export CONTAINER_LAUNCH="apptainer exec ${CONTAINER_IMAGE} "
             export PROJECT_ENVIRONMENT_SET="true"
+        fi
+    fi
+
+    if [[ "true" == "${CONDA_FLAG}" || "false" == "${CONTAINER_FLAG}" ]]
+    then
+       SETUP_SCRIPT="${PROJECT_HOME}/envs/${CONDA_ENV}-setup.sh"
+        if [[ -f "${SETUP_SCRIPT}" ]]; then
+            set --
+            SETUP=(source "${SETUP_SCRIPT}")
+            echo ""
+            echo "${SETUP[@]}"
+            echo ""
+            "${SETUP[@]}"
+            export PROJECT_ENVIRONMENT_SET="true"
+	    CONDA_FLAG="true"
         fi
     fi
 
