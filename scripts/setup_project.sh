@@ -168,6 +168,7 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
             export W_LONG_MAX_MODEL_LEN=1
             export CONTAINER_LAUNCH="apptainer exec ${CONTAINER_IMAGE} "
             export PROJECT_ENVIRONMENT_SET="true"
+	    CONTAINER_FLAG="true"
         fi
     fi
 
@@ -182,7 +183,6 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
             echo ""
             "${SETUP[@]}"
             export PROJECT_ENVIRONMENT_SET="true"
-	    CONDA_FLAG="true"
         fi
     fi
 
