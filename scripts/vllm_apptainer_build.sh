@@ -113,7 +113,7 @@ fi
 mkdir -p ${IMAGE_DIR}
 CMD="apptainer build --force ${IMAGE_PATH} ${DOCKER_URI}"
 echo "${CMD}"
-#eval ${CMD}
+eval ${CMD}
 
 echo ""
 echo "Apptainer build for ${PROJECT_NAME} completed on $(hostname): $(date)"
