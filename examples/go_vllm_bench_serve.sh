@@ -110,7 +110,7 @@ else
     echo "Running benchmark test:"
 fi
 echo "${CMD_TO_ECHO}"
-#eval "${CMD}"
+eval "${CMD}"
 
 echo ""
 echo "Job time: $((${SECONDS}-${T1})) seconds"
