@@ -153,27 +153,39 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
     export VLLM_CMD
     export HF_MODEL
 
-    if [[ "true" == "${CONTAINER_FLAG}" || "false" == "${CONDA_FLAG}" ]]
-    then
+    # Define storage locations and logging level.
+    if [[ -z "${VLLM_STORE}" ]]; then
+        HPC_WORK="${HOME}/rds/hpc-work"
+        if [[ -d "${HPC_WORK}" ]]; then
+            VLLM_STORE="${HPC_WORK}/vllm"
+        else
+            VLLM_STORE="${PROJECT_HOME}/vllm"
+        fi
+    fi
+    export VLLM_CACHE_ROOT="${VLLM_STORE}"
+    export HF_HOME="${VLLM_STORE}"
+    export HF_HUB_CACHE="${VLLM_STORE}"
+    export VLLM_LOGGING_LEVEL="INFO"
+
+    export VLLM_USE_V1=1
+    export VLLM_WORKER_MULTIPROC_METHOD="spawn"
+    export W_LONG_MAX_MODEL_LEN=1
+
+    if [[ "true" == "${CONTAINER_FLAG}" || "false" == "${CONDA_FLAG}" ]]; then
+        # Perform apptainer setup.
         if [[ -f "${CONTAINER_IMAGE}" ]]; then
             module purge
             module load rhel9/default-dawn
             export CCL_TOPO_FABRIC_VERTEX_CONNECTION_CHECK=0
             export FI_PROVIDER="tcp"
-	    if [[ -z "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
-                export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
-	    fi 
-            export VLLM_USE_V1=1
-            export VLLM_WORKER_MULTIPROC_METHOD="spawn"
-            export W_LONG_MAX_MODEL_LEN=1
             export CONTAINER_LAUNCH="apptainer exec ${CONTAINER_IMAGE} "
             export PROJECT_ENVIRONMENT_SET="true"
 	    CONTAINER_FLAG="true"
         fi
     fi
 
-    if [[ "true" == "${CONDA_FLAG}" || "false" == "${CONTAINER_FLAG}" ]]
-    then
+    if [[ "true" == "${CONDA_FLAG}" || "false" == "${CONTAINER_FLAG}" ]]; then
+       # Perform conda setup.
        SETUP_SCRIPT="${PROJECT_HOME}/envs/${CONDA_ENV}-setup.sh"
         if [[ -f "${SETUP_SCRIPT}" ]]; then
             set --

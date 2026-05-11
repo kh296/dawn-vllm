@@ -156,7 +156,9 @@ module load rhel9/default-dawn
 module load intel-oneapi-ccl/2021.15.0
 
 export CCL_ATL_SHM=1
-export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
+if [[ -z "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
+    export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
+fi 
 export ONEAPI_DEVICE_SELECTOR="level_zero:gpu;opencl:gpu"
 export VLLM_HOST_IP="\$(getent hosts \$(hostname) | cut -d' ' -f1)"
 export VLLM_TARGET_DEVICE="xpu"
@@ -169,13 +171,6 @@ export VLLM_TARGET_DEVICE="cpu"
 EOF
 
 cat <<EOF >>${SETUP}
-export VLLM_CACHE_ROOT="${LOCAL_STORE}"
-export VLLM_LOGGING_LEVEL="INFO"
-export VLLM_USE_V1=1
-export VLLM_WORKER_MULTIPROC_METHOD="spawn"
-export W_LONG_MAX_MODEL_LEN=1
-export HF_HOME="${LOCAL_STORE}"
-export HF_HUB_CACHE="${LOCAL_STORE}"
 
 # Initialise conda.
 source ${CONDA_HOME}/bin/activate

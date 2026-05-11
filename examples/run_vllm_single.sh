@@ -182,20 +182,6 @@ if [[ "true" != "${IS_HEAD_NODE}" ]]; then
     exit
 fi
 
-# Define storage locations and logging level.
-if [[ -z "${VLLM_STORE}" ]]; then
-    HPC_WORK="${HOME}/rds/hpc-work"
-    if [[ -d "${HPC_WORK}" ]]; then
-        VLLM_STORE="${HPC_WORK}/vllm"
-    else
-        VLLM_STORE="${PROJECT_HOME}/vllm"
-    fi
-fi
-export VLLM_CACHE_ROOT="${VLLM_STORE}"
-export HF_HOME="${VLLM_STORE}"
-export HF_HUB_CACHE="${VLLM_STORE}"
-export VLLM_LOGGING_LEVEL="INFO"
-
 # Run vLLM command.
 # For vLLM CLI reference, see:
 # https://docs.vllm.ai/en/stable/cli/
