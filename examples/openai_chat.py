@@ -13,6 +13,18 @@ import time
 from openai import APIConnectionError, OpenAI
 
 
+def _get_hostname():
+    """
+    Return hostname, setting to 'localhost' if associated IP address not found.
+    """
+    hostname = socket.gethostname()
+    try:
+        socket.gethostbyname(hostname)
+    except socket.gaierror:
+        hostname = "localhost"
+    return hostname
+
+
 def can_connect(client, interval=60, max_wait=1200, verbose=True):
     """
     Check whether connection to client can be established.
@@ -44,8 +56,7 @@ def can_connect(client, interval=60, max_wait=1200, verbose=True):
                 time.sleep(interval)
                       
 
-def get_base_url(
-    default_vllm_host=socket.gethostname(), default_vllm_port="8000"):
+def get_base_url(default_vllm_host=_get_hostname() , default_vllm_port="8000"):
     """
     Return URL that can be used with OpenAI client.
 

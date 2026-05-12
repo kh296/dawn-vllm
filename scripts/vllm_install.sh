@@ -166,6 +166,7 @@ EOF
 
 cat <<EOF >>${MACOS_SETUP}
 export GLOO_SOCKET_IFNAME="en0"
+export VLLM_CPU_KVCACHE_SPACE=4
 export VLLM_HOST_IP="127.0.0.1"
 export VLLM_TARGET_DEVICE="cpu"
 EOF
@@ -203,7 +204,7 @@ if [[ -z "${VLLM_VERSION}" ]]; then
         VLLM_VERSION="v0.20.2"
         TRITON_XPU_VERSION="3.7.0"
     elif [[ "macOS" == "${SYSTEM}" ]]; then
-        VLLM_VERSION="v0.14.1"
+        VLLM_VERSION="v0.20.2"
     fi
 fi
 rm -rf ${VLLM_HOME}

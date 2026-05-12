@@ -63,6 +63,10 @@ else
     VLLM_DISTRIBUTED_OPT=""
 fi
 
+if [[ -z ${VLLM_HOST} && "${OSTYPE}" == "darwin"* ]]; then
+    export VLLM_HOST="127.0.0.1"
+fi
+
 # Define command shortcuts.
 SHORTCUTS=("VLLM_BENCH_THROUGHPUT" "VLLM_BENCH_SERVE" "VLLM_SERVE")
 
@@ -73,6 +77,7 @@ SHORTCUTS=("VLLM_BENCH_THROUGHPUT" "VLLM_BENCH_SERVE" "VLLM_SERVE")
 vllm bench throughput\
  --model=\${HF_MODEL}\
  -tp \${SLURM_NTASKS}\
+ --max-model-len 32768\
  --input-len=1024\
  --output-len=1024\
  --enforce-eager${VLLM_DISTRIBUTED_OPT}
@@ -99,7 +104,7 @@ vllm serve\
  --dtype bfloat16\
  --max-model-len 32768\
  --max-num-seqs 50\
- --host $(hostname)\
+ --host ${VLLM_HOST:-$(hostname)}\
  --port ${VLLM_PORT:-8000}\
  --enforce-eager${VLLM_DISTRIBUTED_OPT}
 EOS
@@ -159,7 +164,7 @@ if [[ -z "${APPTAINER_CONTAINER}" ]]; then
 
     if [[ "vllm_serve" == ${SHORTCUT_USED} ]];then
         if [[ -z ${VLLM_API_KEY} ]]; then
-            export VLLM_API_KEY=$(pwgen 16 1)
+            export VLLM_API_KEY=$(LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' < /dev/urandom | head -c 24)
 	    echo ""
 	    echo "INFO: Setting api-key to: ${VLLM_API_KEY}"
 	    echo \
