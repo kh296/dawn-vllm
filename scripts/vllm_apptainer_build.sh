@@ -39,7 +39,7 @@ if [[ ! -d "${PROJECT_HOME}" ]]; then
 fi
 
 # Set defaults.
-VERSION="0.14.1-xpu"
+VERSION="latest"
 IDENTIFIER="intel/${PROJECT_NAME_LC}:${VERSION}"
 DOCKER_URI="docker://${IDENTIFIER}"
 IMAGE_PATH=${PROJECT_HOME}/apptainer

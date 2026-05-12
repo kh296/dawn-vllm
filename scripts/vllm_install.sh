@@ -155,10 +155,10 @@ module purge
 module load rhel9/default-dawn
 module load intel-oneapi-ccl/2021.15.0
 
-export CCL_ATL_SHM=1
 if [[ -z "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
     export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
 fi 
+export CCL_ATL_SHM=1
 export ONEAPI_DEVICE_SELECTOR="level_zero:gpu;opencl:gpu"
 export VLLM_HOST_IP="\$(getent hosts \$(hostname) | cut -d' ' -f1)"
 export VLLM_TARGET_DEVICE="xpu"
@@ -184,7 +184,7 @@ conda update -n base -c conda-forge conda -y
 
 # Delete any pre-existing environment.
 if [ -d "${CONDA_HOME}/envs/${CONDA_ENV}" ]; then
-    conda env remove -n ${CONDA_ENV} -y
+    rm -rf ${CONDA_HOME}/envs/${CONDA_ENV}
 fi
 
 # Create and activate the environment.
@@ -200,7 +200,8 @@ VLLM_HOME=${PROJECTS_DIR}/${PROJECT_NAME_LC}
 # If VLLM version not set, default to latest version that uses torch 2.9.1.
 if [[ -z "${VLLM_VERSION}" ]]; then
     if [[ "Dawn" == "${SYSTEM}" ]]; then
-        VLLM_VERSION="v0.15.1"
+        VLLM_VERSION="v0.20.2"
+        TRITON_XPU_VERSION="3.7.0"
     elif [[ "macOS" == "${SYSTEM}" ]]; then
         VLLM_VERSION="v0.14.1"
     fi
@@ -231,6 +232,17 @@ echo "Performing installation for target device '${VLLM_TARGET_DEVICE}':"
 CMD="python -m pip install -v -r requirements/${VLLM_TARGET_DEVICE}.txt"
 echo "${CMD}"
 eval "${CMD}"
+
+if [[ "Dawn" == "${SYSTEM}" ]]; then
+    echo ""
+    echo "Ensuring triton-xpu ${TRITON_XPU_VERSION} installed:"
+    CMD="python -m pip uninstall -y triton triton-xpu"
+    echo "${CMD}"
+    eval "${CMD}"
+    CMD="python -m pip install triton-xpu==${TRITON_XPU_VERSION} --extra-index-url https://download.pytorch.org/whl/xpu"
+    echo "${CMD}"
+    eval "${CMD}"
+fi
 
 CMD="python -m pip install -v -e ."
 if [[ "Dawn" == "${SYSTEM}" ]]; then
