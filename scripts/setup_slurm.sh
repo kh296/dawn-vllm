@@ -37,6 +37,7 @@ if [[ -z "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
         export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
     else
         export ZE_FLAT_DEVICE_HIERARCHY="COMPOSITE"
+    fi
 fi
 if [[ "COMPOSITE" == "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
     DEVICES_PER_GPU=1
