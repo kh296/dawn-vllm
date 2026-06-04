@@ -33,7 +33,10 @@ fi
 
 # Determine number of root devices per GPU on Dawn.
 if [[ -z "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
-    export ZE_FLAT_DEVICE_HIERARCHY="COMPOSITE"
+    if [[ "$(hostname)" == "pvc-s"* ]]; then
+        export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
+    else
+        export ZE_FLAT_DEVICE_HIERARCHY="COMPOSITE"
 fi
 if [[ "COMPOSITE" == "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
     DEVICES_PER_GPU=1
