@@ -68,7 +68,7 @@ set -- "${FILTERED_ARGS[@]}"
 API_KEY=$(LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' < /dev/urandom | head -c 24)
 
 # Start a vLLM server.
-VLLM_API_KEY=${API_KEY} ./go_vllm.sh $@ -r vllm_serve &
+VLLM_API_KEY="${API_KEY}" ./go_vllm.sh $@ -r vllm_serve &
 
 # Wait until server startup has completed.
 while ! ss -tunlp | grep -q vllm; do
@@ -101,11 +101,11 @@ echo ""
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
 LOG_FILE="vllm_bench_serve_${SLURM_JOB_ID:-${TIMESTAMP}}_subjob.log"
 if [[ "true" == "${SUBMIT_SUBJOB}" ]]; then
-    CMD="sbatch --wait --nodes=1 --gres=gpu:1 --exclude=$(hostname) --export=OPENAI_API_KEY=${API_KEY},VLLM_HOST=$(hostname) --output=${LOG_FILE} ${PROJECT_HOME}examples//go_vllm.sh $@ -r vllm_bench_serve"
+    CMD="sbatch --wait --nodes=1 --gres=gpu:1 --exclude=$(hostname) --export=OPENAI_API_KEY=\"${API_KEY}\",VLLM_HOST=$(hostname) --output=${LOG_FILE} ${PROJECT_HOME}examples//go_vllm.sh $@ -r vllm_bench_serve"
     CMD_TO_ECHO=$(echo "${CMD}" | sed 's/--export=[^ ]* //')
     echo "Submitting batch job to run benchmark test:"
 else
-    CMD="OPENAI_API_KEY=${API_KEY} VLLM_HOST=$(hostname) ${PROJECT_HOME}/examples/go_vllm.sh $@ -r vllm_bench_serve 1>${LOG_FILE} 2>&1"
+    CMD="OPENAI_API_KEY=\"${API_KEY}\" VLLM_HOST=$(hostname) ${PROJECT_HOME}/examples/go_vllm.sh $@ -r vllm_bench_serve 1>${LOG_FILE} 2>&1"
     CMD_TO_ECHO=$(echo "${CMD}" | sed -E 's/(OPENAI_API_KEY|VLLM_HOST)=[^ ]* //g')
     echo "Running benchmark test:"
 fi
