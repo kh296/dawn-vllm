@@ -124,6 +124,11 @@ if ! [ -d "${CONDA_HOME}" ]; then
     exit 2
 fi
 
+# Ensure cargo directory defined.
+#if [ -z "${CARGO_HOME}" ]; then
+#    CARGO_HOME="${HOME}/rust_store/cargo"
+#fi
+
 # Perform installation.
 echo "Installation of ${PROJECT_NAME} for ${OSTYPE} on $(hostname) started: $(date)"
 T0=${SECONDS}
@@ -153,7 +158,12 @@ cat <<EOF >>${DAWN_SETUP}
 # Load modules.
 module purge
 module load rhel9/default-dawn
-module load intel-oneapi-ccl/2021.15.0
+#module load intel-oneapi-ccl/2021.15.0
+#module load intel-oneapi-compilers/2025.1.0
+#source /usr/local/dawn/software/external/intel-oneapi/2026.0.0/setvars.sh
+#source /usr/local/dawn/software/external/intel-oneapi/2025.3/setvars.sh
+#source /usr/local/dawn/software/external/intel-oneapi/2025.3.1/setvars.sh
+source /usr/local/dawn/software/external/intel-oneapi/2025.2.1/setvars.sh
 
 if [[ -z "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
     export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
@@ -173,6 +183,9 @@ EOF
 
 cat <<EOF >>${SETUP}
 
+# Initialise rust.
+#source ${CARGO_HOME}/env
+
 # Initialise conda.
 source ${CONDA_HOME}/bin/activate
 
@@ -189,7 +202,12 @@ if [ -d "${CONDA_HOME}/envs/${CONDA_ENV}" ]; then
 fi
 
 # Create and activate the environment.
-conda create -n ${CONDA_ENV} -y python=3.12
+# Set upper and lower version limits for selected packages.
+# For fastapi issue, see:
+# https://github.com/trallnag/prometheus-fastapi-instrumentator/issues/370
+CMD="conda create -n ${CONDA_ENV} -y python=3.12 'setuptools>=77.0.3,<81.0.0' 'fastapi>=0.115.0,<0.137.0'" 
+echo "${CMD}"
+eval "${CMD}"
 CMD="conda activate ${CONDA_ENV}"
 echo "${CMD}" >> "${SETUP}"
 eval "${CMD}"
@@ -198,11 +216,9 @@ eval "${CMD}"
 PROJECTS_DIR=$(realpath ..)/projects
 mkdir -p ${PROJECTS_DIR}
 VLLM_HOME=${PROJECTS_DIR}/${PROJECT_NAME_LC}
-# If VLLM version not set, default to latest version that uses torch 2.9.1.
 if [[ -z "${VLLM_VERSION}" ]]; then
     if [[ "Dawn" == "${SYSTEM}" ]]; then
-        VLLM_VERSION="v0.20.2"
-        TRITON_XPU_VERSION="3.7.0"
+        VLLM_VERSION="v0.15.1"
     elif [[ "macOS" == "${SYSTEM}" ]]; then
         VLLM_VERSION="v0.20.2"
     fi
@@ -233,17 +249,6 @@ echo "Performing installation for target device '${VLLM_TARGET_DEVICE}':"
 CMD="python -m pip install -v -r requirements/${VLLM_TARGET_DEVICE}.txt"
 echo "${CMD}"
 eval "${CMD}"
-
-if [[ "Dawn" == "${SYSTEM}" ]]; then
-    echo ""
-    echo "Ensuring triton-xpu ${TRITON_XPU_VERSION} installed:"
-    CMD="python -m pip uninstall -y triton triton-xpu"
-    echo "${CMD}"
-    eval "${CMD}"
-    CMD="python -m pip install triton-xpu==${TRITON_XPU_VERSION} --extra-index-url https://download.pytorch.org/whl/xpu"
-    echo "${CMD}"
-    eval "${CMD}"
-fi
 
 CMD="python -m pip install -v -e ."
 if [[ "Dawn" == "${SYSTEM}" ]]; then
