@@ -73,7 +73,7 @@ while [[ $# -gt 0 ]]; do
         -d)
             if [[ -n "$2" && "$2" != -* ]]; then
                 if [[ -f "$2" ]]; then
-                    DOCKER_URI="$2"
+                    DOCKER_URI="docker-archive://$2"
                     NAME=$(basename "$2")
                     IMAGE_NAME="${NAME%.*}.sif"
                 else
