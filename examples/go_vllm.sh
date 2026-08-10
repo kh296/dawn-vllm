@@ -64,7 +64,7 @@ if [[ "${SLURM_NNODES}" -eq "1" ]]; then
     CMD=("${RUN_SCRIPT}" "$@")
 else
     echo "Running tasks on ${SLURM_NNODES} nodes:"
-    CMD=(srun --nodes=${SLURM_NNODES} --ntasks=${SLURM_NNODES} --ntasks-per-node=1 "${RUN_SCRIPT}" "$@")
+    CMD=(srun --nodes=${SLURM_NNODES} --ntasks=${SLURM_NNODES} --ntasks-per-node=1 --gres=gpu:${SLURM_GPUS_ON_NODE} "${RUN_SCRIPT}" "$@")
 fi
 echo "${CMD[@]}"
 "${CMD[@]}"
