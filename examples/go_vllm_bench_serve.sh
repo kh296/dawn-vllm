@@ -24,6 +24,9 @@
 # of starting the benchmarking, or otherwise will be
 # date and time in the format YYYY:mm:dd_HH:MM:SS.
 
+# Exit at first failure.
+set -e
+
 T1=${SECONDS}
 
 # Unset and set Slurm variables for compatibility with srun.
@@ -101,7 +104,7 @@ echo ""
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
 LOG_FILE="vllm_bench_serve_${SLURM_JOB_ID:-${TIMESTAMP}}_subjob.log"
 if [[ "true" == "${SUBMIT_SUBJOB}" ]]; then
-    CMD="sbatch --wait --nodes=1 --gres=gpu:1 --exclude=$(hostname) --export=OPENAI_API_KEY=\"${API_KEY}\",VLLM_HOST=$(hostname) --output=${LOG_FILE} ${PROJECT_HOME}examples//go_vllm.sh $@ -r vllm_bench_serve"
+    CMD="sbatch --wait --account=\"${SLURM_JOB_ACCOUNT}\" --partition=\"${SLURM_JOB_PARTITION}\" --nodes=1 --gres=gpu:1 --exclude=$(hostname) --export=OPENAI_API_KEY=\"${API_KEY}\",VLLM_HOST=$(hostname) --output=${LOG_FILE} ${PROJECT_HOME}/examples/go_vllm.sh $@ -r vllm_bench_serve"
     CMD_TO_ECHO=$(echo "${CMD}" | sed 's/--export=[^ ]* //')
     echo "Submitting batch job to run benchmark test:"
 else
