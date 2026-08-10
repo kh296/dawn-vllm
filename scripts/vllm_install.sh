@@ -94,6 +94,8 @@ fi
 # Determine system being used.
 if [[ "$(hostname)" == "pvc-s"* ]]; then
     SYSTEM="Dawn"
+elif [[ "$(hostname)" == *"-pl1"* ]]; then
+    SYSTEM="aac6"
 elif [[ "${OSTYPE}" == "darwin"* ]]; then
     SYSTEM="macOS"
 else
@@ -138,10 +140,14 @@ ENVS_DIR=$(realpath ..)/envs
 mkdir -p ${ENVS_DIR}
 SETUP="${ENVS_DIR}/${CONDA_ENV}-setup.sh"
 DAWN_SETUP="/dev/null"
+AAC6_SETUP="/dev/null"
 MACOS_SETUP="/dev/null"
 if [[ "Dawn" == "${SYSTEM}" ]]; then
     DAWN_SETUP="${SETUP}"
     LOCAL_STORE="${HOME}/rds/hpc-work/vllm"
+elif [[ "aac6" == "${SYSTEM}" ]]; then
+    AAC6_SETUP="${SETUP}"
+    LOCAL_STORE="${HOME}/local-store/vllm"
 elif [[ "macOS" == "${SYSTEM}" ]]; then
     MACOS_SETUP="${SETUP}"
     LOCAL_STORE="${HOME}/local-store/vllm"
@@ -174,6 +180,20 @@ export VLLM_HOST_IP="\$(getent hosts \$(hostname) | cut -d' ' -f1)"
 export VLLM_TARGET_DEVICE="xpu"
 EOF
 
+cat <<EOF >>${AAC6_SETUP}
+# Load modules.
+module purge
+module load rocm
+module load openmpi
+
+# Set network interface for communication:
+# https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-ifname
+# Possibilities for listing network interfaces include:
+# Linux: ip addr, netstat -i, ifconfig
+# MacOS: networksetup -listallhardwarereports, netstat -i, ifconfig
+export NCCL_SOCKET_IFNAME="enp129s0"
+EOF
+
 cat <<EOF >>${MACOS_SETUP}
 export GLOO_SOCKET_IFNAME="en0"
 export VLLM_CPU_KVCACHE_SPACE=4
@@ -194,7 +214,6 @@ EOF
 
 # Set up installation environment.
 source ${SETUP}
-conda update -n base -c conda-forge conda -y
 
 # Delete any pre-existing environment.
 if [ -d "${CONDA_HOME}/envs/${CONDA_ENV}" ]; then
@@ -218,6 +237,8 @@ mkdir -p ${PROJECTS_DIR}
 VLLM_HOME=${PROJECTS_DIR}/${PROJECT_NAME_LC}
 if [[ -z "${VLLM_VERSION}" ]]; then
     if [[ "Dawn" == "${SYSTEM}" ]]; then
+        VLLM_VERSION="v0.15.1"
+    elif [[ "aac6" == "${SYSTEM}" ]]; then
         VLLM_VERSION="v0.15.1"
     elif [[ "macOS" == "${SYSTEM}" ]]; then
         VLLM_VERSION="v0.20.2"

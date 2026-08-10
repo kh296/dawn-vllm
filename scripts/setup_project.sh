@@ -174,10 +174,20 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
     if [[ "true" == "${CONTAINER_FLAG}" || "false" == "${CONDA_FLAG}" ]]; then
         # Perform apptainer setup.
         if [[ -f "${CONTAINER_IMAGE}" ]]; then
-            module purge
-            module load rhel9/default-dawn
-            export CCL_TOPO_FABRIC_VERTEX_CONNECTION_CHECK=0
-            export FI_PROVIDER="tcp"
+            if [[ "$(hostname)" == "pvc-s"* ]]; then
+                module purge
+                module load rhel9/default-dawn
+                export CCL_TOPO_FABRIC_VERTEX_CONNECTION_CHECK=0
+                export FI_PROVIDER="tcp"
+            elif [[ "$(hostname)" == *"pl1"* ]]; then
+                module purge
+                module load rocm
+                module load openmpi
+                export APPTAINER_BINDPATH="\
+/shared/apps/ubuntu/opt/rocm-7.2.3/lib/hipblaslt/library,\
+/shared/apps/ubuntu/opt/rocm-patches-7.2.3/hipblaslt/library\
+"
+	    fi
             export CONTAINER_LAUNCH="apptainer exec ${CONTAINER_IMAGE} "
             export PROJECT_ENVIRONMENT_SET="true"
 	    CONTAINER_FLAG="true"

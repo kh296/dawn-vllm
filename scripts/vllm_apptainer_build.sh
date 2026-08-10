@@ -7,18 +7,24 @@
 #SBATCH --time=00:15:00        # total run time limit (HH:MM:SS)
 
 # Script for building an Apptainer image from a Docker image that has
-# vLLM installed with Intel extensions and GPU drivers.
+# vLLM installed.
 # For information about available Docker images, see:
-# https://hub.docker.com/r/intel/vllm
+# Intel GPUs : https://hub.docker.com/r/intel/vllm
+# AMD GPUs   : https://hub.docker.com/r/vllm/vllm-openai-rocm
 
 # This script can be run interactively on a Dawn compute node:
 # ./vllm_apptainer_build.sh [<options>]
-# or can be submitted to Dawn's Slurm batch system, substituting a
-# valid project account for <project_account>:.
-# sbatch --acount=<project_account> ./vllm_apptainer_build.sh [<options>]
+# or can be submitted to a Slurm batch system, substituting a
+# valid project account for <project_account>
+# and a valid partition for <partition>:.
+# sbatch --acount=<project_account> --partition=<partition> ./vllm_apptainer_build.sh [<options>]
 #
 # For information about options, from a compute node or login node use:
 # ./vllm_apptainer_build.sh -h
+
+# Exit at first failure.
+set -e
+
 T0=${SECONDS}
 PROJECT_NAME="vLLM"
 PROJECT_NAME_LC="$(echo ${PROJECT_NAME} | tr [:upper:] [:lower:])"
@@ -26,9 +32,6 @@ if [[ " $* " != *" -h "* ]]; then
     echo "Apptainer build for ${PROJECT_NAME} started on $(hostname): $(date)"
     echo ""
 fi
-
-# Exit at first failure.
-set -e
 
 # Ensure PROJECT_HOME defined.
 if [[ ! -d "${PROJECT_HOME}" ]]; then
@@ -40,7 +43,17 @@ fi
 
 # Set defaults.
 VERSION="latest"
-IDENTIFIER="intel/${PROJECT_NAME_LC}:${VERSION}"
+# Match default identifier to system used.
+if [[ "$(hostname)" == "pvc-s"* || "$(hostname)" == "login-s"* ]]; then
+    SYSTEM="Dawn"
+    IDENTIFIER="intel/${PROJECT_NAME_LC}:${VERSION}"
+elif [[ "$(hostname)" == *"pl1"* ]]; then
+    SYSTEM="aac6"
+    IDENTIFIER="vllm/vllm-openai-rocm:${VERSION}"
+else
+    SYSTEM="unknown"
+    IDENTIFIER=""
+fi
 DOCKER_URI="docker://${IDENTIFIER}"
 IMAGE_PATH=${PROJECT_HOME}/apptainer
 IMAGE_NAME="${PROJECT_NAME_LC}-${VERSION}.sif"
@@ -48,7 +61,7 @@ IMAGE_NAME="${PROJECT_NAME_LC}-${VERSION}.sif"
 # Parse command-line options.
 usage() {
     echo "usage: vllm_apptainer_build.sh [-h] [-d <docker image>][-a <apptainer image>]"
-    echo "    Build Apptainer image from Docker Image with vLLM for Intel GPUs."
+    echo "    Build Apptainer image from Docker Image with ${PROJECT_NAME}."
     echo "Options:"
     echo "    -h: Print this help."
     echo "    -d: Build from docker image with local path or identifier <docker image>;"
@@ -96,6 +109,12 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "docker://" == "${DOCKER_URI}" ]]; then
+    echo "Docker image not known from URI \"${DOCKER_URI}\""
+    echo "Exiting: $(date)"
+    exit 1
+fi
 
 if [[ ${IMAGE_PATH} != *.sif ]]; then
     IMAGE_PATH="${IMAGE_PATH}/${IMAGE_NAME}"
