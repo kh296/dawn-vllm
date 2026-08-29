@@ -60,11 +60,20 @@ fi
 echo "Job start on $(hostname): $(date)"
 echo ""
 if [[ "${SLURM_NNODES}" -eq "1" ]]; then
+    echo "Checking vllm version on 1 node:"
+    CMD=("${RUN_SCRIPT}" "$@" -r "vllm --version")
+    echo "${CMD[@]}"
+    "${CMD[@]}"
     echo "Running task on 1 node:"
     CMD=("${RUN_SCRIPT}" "$@")
 else
+    echo "Checking vllm version on ${SLURM_NNODES} nodes:"
+    SRUN_CMD=(srun --nodes=${SLURM_NNODES} --ntasks=${SLURM_NNODES} --ntasks-per-node=1 --gres=gpu:${SLURM_GPUS_ON_NODE})
+    CMD=(${SRUN_CMD[@]} --export=ALL,SETUP_RAY="false" "${RUN_SCRIPT}" "$@" -r "vllm --version")
+    echo "${CMD[@]}"
+    "${CMD[@]}"
     echo "Running tasks on ${SLURM_NNODES} nodes:"
-    CMD=(srun --nodes=${SLURM_NNODES} --ntasks=${SLURM_NNODES} --ntasks-per-node=1 --gres=gpu:${SLURM_GPUS_ON_NODE} "${RUN_SCRIPT}" "$@")
+    CMD=(${SRUN_CMD[@]} "${RUN_SCRIPT}" "$@")
 fi
 echo "${CMD[@]}"
 "${CMD[@]}"

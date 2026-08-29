@@ -57,7 +57,7 @@ if [[ -z "${SLURM_NNODES}" ]]; then
     export SLURM_NNODES=1
 fi
 
-if [[ ${SLURM_NNODES} -gt 1 ]]; then
+if [[ ${SLURM_NNODES} -gt 1 && "${SETUP_RAY}" != "false" ]]; then
     VLLM_DISTRIBUTED_OPT=" --distributed-executor-backend ray"
 else
     VLLM_DISTRIBUTED_OPT=""
@@ -81,6 +81,15 @@ vllm bench throughput\
  --input-len=1024\
  --output-len=1024\
  --enforce-eager${VLLM_DISTRIBUTED_OPT}
+EOS
+
+! read -r -d "" VLLM_BENCH_THROUGHPUT << EOS
+vllm bench throughput\
+ --model=\${HF_MODEL}\
+ -tp \${SLURM_NTASKS}\
+ --gpu-memory-utilization 0.75\
+ --input-len=1024\
+ --output-len=1024${VLLM_DISTRIBUTED_OPT}
 EOS
 
 ! read -r -d "" VLLM_BENCH_SERVE << EOS
@@ -108,6 +117,15 @@ vllm serve\
  --port ${VLLM_PORT:-8000}\
  --enforce-eager${VLLM_DISTRIBUTED_OPT}
 EOS
+
+! read -r -d "" VLLM_SERVE << EOS
+vllm serve\
+ \${HF_MODEL}\
+ -tp \${SLURM_NTASKS}\
+ --host ${VLLM_HOST:-$(hostname)}\
+ --port ${VLLM_PORT:-8000}
+EOS
+# --gpu-memory-utilization 0.75${VLLM_DISTRIBUTED_OPT}
 
 # Ensure that help in ../scripts/setup_project.sh refers to this script.
 if [[ -z ${SETUP_INFO} ]]; then
@@ -164,7 +182,8 @@ if [[ -z "${APPTAINER_CONTAINER}" ]]; then
 
     if [[ "vllm_serve" == ${SHORTCUT_USED} ]];then
         if [[ -z ${VLLM_API_KEY} ]]; then
-            export VLLM_API_KEY=$(LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' < /dev/urandom | head -c 24)
+            export VLLM_API_KEY=$(LC_ALL=C tr -dc\
+ 'A-Za-z0-9\@\#\$\%\^\&\*\(\)\_\+\-\=' < /dev/urandom | head -c 24)
 	    echo ""
 	    echo "INFO: Setting api-key to: ${VLLM_API_KEY}"
 	    echo \
@@ -183,7 +202,7 @@ if [[ ! -z ${CONTAINER_LAUNCH} && -z ${APPTAINER_CONTAINER} ]]; then
 fi
 set --
 
-if [[ "true" != "${IS_HEAD_NODE}" ]]; then
+if [[ "true" != "${IS_HEAD_NODE}" && "false" != ${SETUP_RAY} ]]; then
     exit
 fi
 
@@ -204,8 +223,13 @@ echo ""
 echo "Command execution completed: $(date)"
 echo "Command execution time: $((${SECONDS}-${T3})) seconds"
 
-# Close down ray cluster, and perform cleanup.
-source ${PROJECT_HOME}/scripts/end_task.sh
-
 echo ""
 echo "Task time on $(hostname): $((${SECONDS}-${TASK_T1})) seconds"
+
+if [[ ${SLURM_NNODES} -gt 1 && "false" != "${SETUP_RAY}"\
+ && "true" != "${NO_CANCEL}" ]]; then
+    echo ""
+    echo\
+ "Auto-cancelling this job (${SLURM_JOB_ID}), to close down ray cluster."
+    scancel ${SLURM_JOB_ID} 1>/dev/null 2>&1
+fi
