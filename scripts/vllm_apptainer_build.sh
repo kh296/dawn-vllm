@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH --job-name=apptainer_build # create a short name for the job
-#SBATCH --output=%x.log        # job output file
+#SBATCH --output=%x_%j.log     # job output file
 #SBATCH --partition=pvc9       # cluster partition to be used
 #SBATCH --nodes=1              # number of nodes
 #SBATCH --gres=gpu:1           # number of allocated gpus per node
@@ -11,6 +11,7 @@
 # For information about available Docker images, see:
 # Intel GPUs : https://hub.docker.com/r/intel/vllm
 # AMD GPUs   : https://hub.docker.com/r/vllm/vllm-openai-rocm
+#            : https://hub.docker.com/r/rocm/vllm
 
 # This script can be run interactively on a Dawn compute node:
 # ./vllm_apptainer_build.sh [<options>]
@@ -49,6 +50,12 @@ if [[ "$(hostname)" == "pvc-s"* || "$(hostname)" == "login-s"* ]]; then
     IDENTIFIER="intel/${PROJECT_NAME_LC}:${VERSION}"
 elif [[ "$(hostname)" == *"pl1"* ]]; then
     SYSTEM="aac6"
+    IDENTIFIER="vllm/vllm-openai-rocm:${VERSION}"
+elif [[ "$(hostname)" == "gpu-u"* ]]; then
+    SYSTEM="Zenith"
+    VERSION="rocm7.14.0_cdna_ubuntu24.04_py3.14_pytorch_2.11.0_vllm_0.23.0"
+    IDENTIFIER="rocm/vllm:${VERSION}"
+    VERSION="v0.27.1"
     IDENTIFIER="vllm/vllm-openai-rocm:${VERSION}"
 else
     SYSTEM="unknown"

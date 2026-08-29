@@ -165,10 +165,21 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
     export VLLM_CACHE_ROOT="${VLLM_STORE}"
     export HF_HOME="${VLLM_STORE}"
     export HF_HUB_CACHE="${VLLM_STORE}"
-    export VLLM_LOGGING_LEVEL="INFO"
+    if [[ -z "${VLLM_LOGGING_LEVEL}" ]]; then
+        export VLLM_LOGGING_LEVEL="WARNING"
+    fi
+    SNAPSHOTS="${HF_HOME}/models--${HF_MODEL//\//--}/snapshots"
+    LOCAL_HF_MODEL="$(dirname $(ls ${SNAPSHOTS}/*/config.json | head -n 1))"
+    if [[ -d "${LOCAL_HF_MODEL}" ]]; then
+        export HF_MODEL="${LOCAL_HF_MODEL}"
+    fi
 
     export VLLM_USE_V1=1
-    export VLLM_WORKER_MULTIPROC_METHOD="spawn"
+    if [[ "$(hostname)" == "gpu-u"* ]]; then
+        export VLLM_WORKER_MULTIPROC_METHOD="fork"
+    else
+        export VLLM_WORKER_MULTIPROC_METHOD="spawn"
+    fi
     export W_LONG_MAX_MODEL_LEN=1
 
     if [[ "true" == "${CONTAINER_FLAG}" || "false" == "${CONDA_FLAG}" ]]; then
@@ -179,6 +190,10 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
                 module load rhel9/default-dawn
                 export CCL_TOPO_FABRIC_VERTEX_CONNECTION_CHECK=0
                 export FI_PROVIDER="tcp"
+            elif [[ "$(hostname)" == "gpu-u"* ]]; then
+                module purge
+                module load rhel9/mi355x/base
+                module load openmpi
             elif [[ "$(hostname)" == *"pl1"* ]]; then
                 module purge
                 module load rocm
@@ -188,6 +203,14 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
 /shared/apps/ubuntu/opt/rocm-patches-7.2.3/hipblaslt/library\
 "
 	    fi
+
+            if [[ "$(hostname)" == "gpu-u"* || "$(hostname)" == *"pl1"* ]]; then
+                if [[ -z ${HIP_VISIBLE_DEVICES} ]]; then
+                    export HIP_VISIBLE_DEVICES="${ROCR_VISIBLE_DEVICES}"
+                fi
+                unset CUDA_VISIBLE_DEVICES
+            fi
+
             export CONTAINER_LAUNCH="apptainer exec ${CONTAINER_IMAGE} "
             export PROJECT_ENVIRONMENT_SET="true"
 	    CONTAINER_FLAG="true"

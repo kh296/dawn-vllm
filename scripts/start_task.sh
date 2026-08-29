@@ -25,7 +25,7 @@ if [[ "true" == "${PROJECT_ENVIRONMENT_SET}" ]]; then
     fi
 
     # As needed, initiate, or add to, ray cluster.
-    if [[ "${SLURM_NNODES}" -gt 1 ]]; then
+    if [[ "${SLURM_NNODES}" -gt 1 && "${SETUP_RAY}" != "false" ]]; then
         if [[ ! -f "$0" || -z "${CONTAINER_LAUNCH}" || \
             ! -z "${APPTAINER_CONTAINER}" ]]; then
             ${PROJECT_HOME}/scripts/setup_ray.sh
