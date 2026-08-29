@@ -7,21 +7,18 @@
 #SBATCH --time=00:30:00         # total run time limit (HH:MM:SS)
 
 # Script that creates a new installation of the Miniforge3 flavour of conda,
-# optionally creating a link to this installation.
+# optionally creating a soft link to this installation.
 # For information about miniforge, see:
 # https://github.com/conda-forge/miniforge
 
-# By default:
-# If the directory ${HOME}/rds/hpc-work exists, this script installs to:
-# ${HOME}/rds/hpc-work/miniforge3
-# and creates a soft link to this directory from:
-# ${HOME}/miniforge3
-# Otherwise, this script installs to:
+# By default, this script installs to:
 # ${HOME}/miniforge3
 # and no soft link to this directory is created.
 
 # Non-default installation directory and soft link can be set using
-# command line options: -i <install path> -l <link path>.
+# the environment variables CONDA_INSTALL and CONDA_LINK, or using
+# the command-line options: -i <install path> -l <link path>.
+# If command-line options are used, these override the environment variables.
 
 # Warning: any pre-existing files at the installation and link paths
 # will be deleted.
@@ -52,16 +49,26 @@ expand_path() {
 }
 
 # Define default installation.
-CONDA_ENV="Miniforge3"
-CONDA_ENV_LC="$(echo ${CONDA_ENV} | tr [:upper:] [:lower:])"
+if [[ -z "${CONDA_ENV}" ]]; then
+    CONDA_ENV="Miniforge3"
+fi
 
-CONDA_HOME=~/${CONDA_ENV_LC}
-if [ -d ~/rds/hpc-work/ ]; then
-    CONDA_INSTALL=~/rds/hpc-work/${CONDA_ENV_LC}
-    CONDA_LINK=${CONDA_HOME}
-else
+if [[ -z "${CONDA_ENV_LC}" ]]; then
+    CONDA_ENV_LC="$(echo ${CONDA_ENV} | tr [:upper:] [:lower:])"
+fi
+
+if [[ -z "${CONDA_HOME}" ]]; then
+    CONDA_HOME=~/${CONDA_ENV_LC}
+fi
+
+if [[ -z "${CONDA_INSTALL}" ]]; then
     CONDA_INSTALL=${CONDA_HOME}
-    CONDA_LINK=""
+fi
+
+if [[ -z "${CONDA_LINK}" ]]; then
+    NO_LINK="true"
+else
+    NO_LINK="false"
 fi
 
 # Parse command-line options.
@@ -73,14 +80,12 @@ usage() {
     echo "    -i: Install to <install path>;"
     echo "    -l: Link <install path> to <link path>."
     echo "If -i omitted, installation is to $CONDA_INSTALL."
-    if [ -n "${CONDA_LINK}" ]; then
-        echo "If -l omitted, installation linked to $CONDA_LINK."
-        echo "If -l included but <link path> unspecified, no link added."
-    else
+    if [ -z "${CONDA_LINK}" ]; then
         echo "If -l omitted or <link path> unspecified, no link added."
+    else
+        echo "If -l omitted, installation linked to $CONDA_LINK."
     fi
 }
-NO_LINK="false"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h)
@@ -90,7 +95,6 @@ while [[ $# -gt 0 ]]; do
         -i)
             if [[ -n "$2" && "$2" != -* ]]; then
                 CONDA_INSTALL="$2"
-                CONDA_LINK="${CONDA_HOME}"
 		shift 2
             else
                 echo "-i must be followed by install path"
@@ -118,8 +122,10 @@ if [[ "true" == "${NO_LINK}" ]]; then
     CONDA_LINK=""
     CONDA_LINK_ECHO="undefined"
 else
+    CONDA_LINK=$(echo "${CONDA_LINK//\'/~}" | sed "s|^~/|$HOME/|")
     CONDA_LINK_ECHO="${CONDA_LINK}"
 fi
+CONDA_INSTALL=$(echo "${CONDA_INSTALL//\'/~}" | sed "s|^~/|$HOME/|")
 
 # Start timer.
 T0=${SECONDS}
@@ -138,12 +144,10 @@ rm -rf "${INSTALL_SCRIPT}"
 wget "https://github.com/conda-forge/miniforge/releases/latest/download/${INSTALL_SCRIPT}"
 eval "bash ${INSTALL_SCRIPT} -b -p ${CONDA_INSTALL}"
 rm -f "${INSTALL_SCRIPT}"
-CONDA_INSTALL=$(realpath ${CONDA_INSTALL})
 
 # Ensure that CONDA_LINK is path to conda installation.
 if [ -n "${CONDA_LINK}" ]; then
     ln -s "${CONDA_INSTALL}" "${CONDA_LINK}"
-    CONDA_LINK=$(realpath ${CONDA_LINK})
 else
     CONDA_LINK=${CONDA_INSTALL}
 fi
