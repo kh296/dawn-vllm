@@ -123,7 +123,7 @@ vllm serve\
  \${HF_MODEL}\
  -tp \${SLURM_NTASKS}\
  --host ${VLLM_HOST:-$(hostname)}\
- --port ${VLLM_PORT:-8000}
+ --port ${VLLM_PORT:-8000}${VLLM_DISTRIBUTED_OPT}
 EOS
 # --gpu-memory-utilization 0.75${VLLM_DISTRIBUTED_OPT}
 
@@ -228,6 +228,7 @@ echo "Task time on $(hostname): $((${SECONDS}-${TASK_T1})) seconds"
 
 if [[ ${SLURM_NNODES} -gt 1 && "false" != "${SETUP_RAY}"\
  && "true" != "${NO_CANCEL}" ]]; then
+    source ${PROJECT_HOME}/scripts/end_task.sh
     echo ""
     echo\
  "Auto-cancelling this job (${SLURM_JOB_ID}), to close down ray cluster."
