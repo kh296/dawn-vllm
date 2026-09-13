@@ -132,9 +132,7 @@ IMAGE_DIR=$(dirname ${IMAGE_PATH})
 
 # Set APPTAINER_TMPDIR to location with sufficient space for build files.
 if [[ -d "/ramdisks" ]]; then
-    export APPTAINER_TMPDIR="/ramdisks/apptainer_tmpdir"
-    rm -rf "${APPTAINER_TMPDIR}"
-    mkdir "${APPTAINER_TMPDIR}"
+    export APPTAINER_TMPDIR=$(mktemp -d -p /ramdisks)
 fi
 
 # Define and run build command.
