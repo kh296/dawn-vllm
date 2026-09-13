@@ -3,9 +3,9 @@
 # Script for ensuring ray cluster stopped, and for performing cleanup.
 #
 # This script can be sourced in a bash shell:
-# source ./setup_slurm.sh
+# source ./end_task.sh
 # or can be run:
-# ./setup_slurm.sh
+# ./end_task.sh
 
 ray stop --grace-period 60 1>/dev/null 2>&1
 
