@@ -4,7 +4,7 @@
 #SBATCH --partition=pvc9        # cluster partition to be used
 #SBATCH --nodes=1               # number of nodes
 #SBATCH --gres=gpu:4            # number of allocated gpus per node
-#SBATCH --time=04:00:00         # total run time limit (HH:MM:SS)
+#SBATCH --time=02:00:00         # total run time limit (HH:MM:SS)
 
 # Script for starting a vLLM server on one or multiple nodes,
 # and for then running server benchmarking.
@@ -103,7 +103,9 @@ echo ""
 
 # Run the benchmark test, in a subjob (option -s) or directly.
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
-LOG_FILE="vllm_bench_serve_${SLURM_JOB_ID:-${TIMESTAMP}}_subjob.log"
+LOG_DIR="${OUT_DIR:-.}"
+LOG_ID=${SLURM_JOB_ID:-${TIMESTAMP}}
+LOG_FILE="${LOG_DIR}/vllm_bench_serve_${LOG_ID}_subjob.log"
 if [[ "true" == "${SUBMIT_SUBJOB}" ]]; then
     CMD="sbatch --wait --account=\"${SLURM_JOB_ACCOUNT}\" --partition=\"${SLURM_JOB_PARTITION}\" --nodes=1 --gres=gpu:1 --exclude=$(hostname) --export=OPENAI_API_KEY=\"${API_KEY}\",VLLM_HOST=$(hostname) --output=${LOG_FILE} ${PROJECT_HOME}/examples/go_vllm.sh $@ -r vllm_bench_serve"
     CMD_TO_ECHO=$(echo "${CMD}" | sed 's/--export=[^ ]* //')
