@@ -186,7 +186,8 @@ module load rhel9/default-dawn
 #source /usr/local/dawn/software/external/intel-oneapi/2026.0.0/setvars.sh
 #source /usr/local/dawn/software/external/intel-oneapi/2025.3/setvars.sh
 #source /usr/local/dawn/software/external/intel-oneapi/2025.3.1/setvars.sh
-source /usr/local/dawn/software/external/intel-oneapi/2025.2.1/setvars.sh
+#source /usr/local/dawn/software/external/intel-oneapi/2025.2.1/setvars.sh
+source /usr/local/dawn/software/external/intel-oneapi/2026.1.0/setvars.sh
 
 if [[ -z "${ZE_FLAT_DEVICE_HIERARCHY}" ]]; then
     export ZE_FLAT_DEVICE_HIERARCHY="FLAT"
@@ -273,6 +274,7 @@ if [[ "Zenith" == "${SYSTEM}" ]]; then
 else
     CMD="conda create -n ${CONDA_ENV} -y python=3.12\
  'setuptools>=77.0.3,<81.0.0' 'fastapi>=0.115.0,<0.137.0'" 
+    CMD="conda create -n ${CONDA_ENV} -y python=3.12"
 fi
 echo ""
 echo "${CMD}"
@@ -295,6 +297,7 @@ VLLM_HOME=${PROJECTS_DIR}/${PROJECT_NAME_LC}
 if [[ -z "${VLLM_VERSION}" ]]; then
     if [[ "Dawn" == "${SYSTEM}" ]]; then
         VLLM_VERSION="v0.15.1"
+        VLLM_VERSION="v0.29.0"
     elif [[ "Zenith" == "${SYSTEM}" ]]; then
         VLLM_VERSION="v0.27.1"
     elif [[ "aac6" == "${SYSTEM}" ]]; then
@@ -358,6 +361,27 @@ flash_attn-2.8.3-cp312-cp312-manylinux_2_34_x86_64.whl"
         "export PKG_CONFIG_PATH=${CONDA_HOME}/envs/${CONDA_ENV}/lib/pkgconfig"
         "uv pip install --no-build-isolation ."
         "cd -"
+        # Install ray.
+        "uv pip install ray"
+    )
+    for CMD in "${CMDS[@]}"; do
+        echo ""
+        echo "${CMD}"
+        ${CMD}
+    done
+elif [[ "Dawn" == "${SYSTEM}" ]]; then
+    # Installation based on instructions for Python wheels for releases:
+    # https://github.com/vllm-project/vllm/releases
+    echo "Performing installation for target device '${VLLM_TARGET_DEVICE}':"
+    CMDS=(
+        # Install uv.
+        "python -m pip install uv"
+        # Install vllm.
+        "uv pip install vllm\
+ --extra-index-url https://wheels.vllm.ai/${VLLM_VERSION}/xpu\
+ --extra-index-url https://download.pytorch.org/whl/xpu\
+ --index-strategy unsafe-best-match"
+        "uv pip install https://github.com/vllm-project/vllm-xpu-kernels/releases/download/v0.1.14/vllm_xpu_kernels-0.1.14-cp38-abi3-manylinux_2_28_x86_64.whl"
         # Install ray.
         "uv pip install ray"
     )
