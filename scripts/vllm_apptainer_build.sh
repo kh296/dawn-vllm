@@ -9,7 +9,8 @@
 # Script for building an Apptainer image from a Docker image that has
 # vLLM installed.
 # For information about available Docker images, see:
-# Intel GPUs : https://hub.docker.com/r/intel/vllm
+# Intel GPUs : https://hub.docker.com/r/vllm/vllm-openai-xpu/
+#              https://hub.docker.com/r/intel/vllm
 # AMD GPUs   : https://hub.docker.com/r/vllm/vllm-openai-rocm
 #            : https://hub.docker.com/r/rocm/vllm
 
@@ -48,14 +49,15 @@ VERSION="latest"
 if [[ "$(hostname)" == "pvc-s"* || "$(hostname)" == "login-s"* ]]; then
     SYSTEM="Dawn"
     IDENTIFIER="intel/${PROJECT_NAME_LC}:${VERSION}"
+    IDENTIFIER="vllm/vllm-openai-xpu:${VERSION}"
 elif [[ "$(hostname)" == *"pl1"* ]]; then
     SYSTEM="aac6"
     IDENTIFIER="vllm/vllm-openai-rocm:${VERSION}"
 elif [[ "$(hostname)" == "gpu-u"* ]]; then
     SYSTEM="Zenith"
-    VERSION="rocm7.14.0_cdna_ubuntu24.04_py3.14_pytorch_2.11.0_vllm_0.23.0"
-    IDENTIFIER="rocm/vllm:${VERSION}"
-    VERSION="v0.27.1"
+    #VERSION="rocm7.14.0_cdna_ubuntu24.04_py3.14_pytorch_2.11.0_vllm_0.23.0"
+    #IDENTIFIER="rocm/vllm:${VERSION}"
+    #VERSION="v0.27.1"
     IDENTIFIER="vllm/vllm-openai-rocm:${VERSION}"
 else
     SYSTEM="unknown"
