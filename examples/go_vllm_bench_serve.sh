@@ -68,8 +68,9 @@ done
 set -- "${FILTERED_ARGS[@]}"
 
 # Generate an API key.
-API_KEY=$(LC_ALL=C tr -dc 'A-Za-z0-9\@\#\$\%\^\&\*\(\)\_\+\-\='\
- < /dev/urandom | head -c 24)
+#API_KEY=$(LC_ALL=C tr -dc 'A-Za-z0-9\@\#\$\%\^\&\*\(\)\_\+\-\='\
+# < /dev/urandom | head -c 24)
+API_KEY="$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 48)"
 
 # Start a vLLM server.
 VLLM_API_KEY="${API_KEY}" ./go_vllm.sh $@ -r vllm_serve &
