@@ -174,7 +174,7 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
         export HF_MODEL="${LOCAL_HF_MODEL}"
     fi
 
-    export VLLM_USE_V1=1
+    #export VLLM_USE_V1=1
     if [[ "$(hostname)" == "gpu-u"* ]]; then
         export VLLM_WORKER_MULTIPROC_METHOD="fork"
     else
@@ -188,6 +188,7 @@ if [[ "true" == "${TRY_SETUP}" ]]; then
             if [[ "$(hostname)" == "pvc-s"* ]]; then
                 module purge
                 module load rhel9/default-dawn
+                #export VLLM_XPU_ENABLE_XPU_GRAPH=1
                 export CCL_TOPO_FABRIC_VERTEX_CONNECTION_CHECK=0
                 export FI_PROVIDER="tcp"
             elif [[ "$(hostname)" == "gpu-u"* ]]; then
