@@ -104,7 +104,7 @@ echo ""
 
 # Run the benchmark test, in a subjob (option -s) or directly.
 TIMESTAMP="$(date +"%Y:%m:%d_%H:%M:%S")"
-LOG_DIR="${OUT_DIR:-.}"
+LOG_DIR="${LOG_DIR:-$(pwd)}"
 LOG_ID=${SLURM_JOB_ID:-${TIMESTAMP}}
 LOG_FILE="${LOG_DIR}/vllm_bench_serve_${LOG_ID}_subjob.log"
 if [[ "true" == "${SUBMIT_SUBJOB}" ]]; then
